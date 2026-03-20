@@ -1,0 +1,120 @@
+# config/panel/page_settings.yaml
+id: page_settings
+widgets:
+  - obj:
+      width: 100%
+      bg_opa: TRANSP
+      styles: page_bg_style
+      pad_all: 15
+      layout: { type: flex, flex_flow: COLUMN }
+      widgets:
+        - label: { text: "НАЛАШТУВАННЯ ПАНЕЛІ", styles: group_label_style, y: 20 }
+        
+        # Группа Яркости
+        - obj:
+            width: 100%
+            height: 170
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: COLUMN } # Для слайдера с подписью лучше COLUMN
+            widgets:  
+              - label: { text: "Яскравість дисплея", text_font: roboto_14, text_color: 0xAAAAAA }
+              - slider:
+                  id: dimmer_slider
+                  width: 100% # 100% или 90% лучше для адаптивности
+                  height: 40
+                  min_value: 8
+                  max_value: 100
+                  value: !lambda "return id(current_brightness);"
+                  indicator:
+                    bg_color: 0x1E758D
+                  knob:
+                    bg_color: 0x1E758D
+                    border_color: 0xFFFFFF
+                    border_width: 2
+                  styles: slider_style
+                  on_value:
+                    then:
+                      - lambda: |-
+                          float val = x / 100.0;
+                          id(current_brightness) = val; // Запоминаем
+                          if (id(idle_counter) > 0) {   // Если не в режиме сна, сразу применяем
+                            auto call = id(display_backlight).make_call();
+                            call.set_brightness(val);
+                            call.perform();
+                          }
+              - label: { id: timeout_label, text: "Таймаут сну: 60 сек", text_font: roboto_14, text_color: 0xAAAAAA }
+              - slider:
+                  id: timeout_slider
+                  width: 100%
+                  height: 40
+                  min_value: 10
+                  max_value: 300
+                  value: !lambda "return id(idle_timeout_s);"
+                  indicator:
+                    bg_color: 0x1E758D
+                  knob:
+                    bg_color: 0x1E758D
+                    border_color: 0xFFFFFF
+                    border_width: 2
+                  styles: slider_style
+                  on_value:
+                    then:
+                      - lambda: |-
+                          id(idle_timeout_s) = x;
+                          id(idle_counter) = x;
+                          static char tbuf[32];
+                          snprintf(tbuf, sizeof(tbuf), "Таймаут сну: %d сек", (int)x);
+                          lv_label_set_text(id(timeout_label), tbuf);
+
+        # Группа ИНФОРМАЦИЯ (Исправлены отступы!)
+        - obj:
+            width: 100%
+            height: 100
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: COLUMN }
+            widgets:
+              - label: { text: "ІНФОРМАЦІЯ", text_font: roboto_22 }
+              - label: { id: sys_ip_label, text: "IP: 0.0.0.0", text_font: roboto_14 }
+              - label: { id: sys_wifi_label, text: "WiFi: Немає підключення", text_font: roboto_14 }
+
+        # Группа СЕРВИС (Исправлены отступы!)
+        - obj:
+            width: 100%
+            bg_opa: TRANSP
+            scrollbar_mode: "OFF"
+            scrollable: false
+            styles: group_style
+            layout: { type: flex, flex_flow: COLUMN }
+            widgets:
+              - label: { text: "СЕРВІС", text_font: roboto_22 }
+              - obj:
+                  width: 100%
+                  height: 100
+                  scrollbar_mode: "OFF"
+                  scrollable: false
+                  bg_opa: TRANSP
+                  styles: group_style
+                  layout: { type: flex, flex_flow: ROW }
+                  widgets:
+                    - button:
+                        styles: btn_centered_style
+                        bg_color: "0x5C0F00"
+                        width: 150
+                        height: 50
+                        widgets: 
+                          - label: { text: "REBOOT", align: CENTER }
+                        on_click: 
+                          then: 
+                            - lambda: "id(reboot_btn).press();" # Убедись, что reboot_btn существует
+                    - checkbox:
+                        id: cycle_checkbox
+                        text_font: roboto_14
+                        text: "Циклична зміна сторінок"
+                        state:
+                          checked: !lambda "return id(screen_cycling_enabled);"
+                        on_click:
+                          then:
+                            - lambda: |-
+                                id(screen_cycling_enabled) = lv_obj_has_state(id(cycle_checkbox), LV_STATE_CHECKED);

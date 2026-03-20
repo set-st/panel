@@ -1,0 +1,66 @@
+# config/panel/page_dash.yaml
+id: page_temp
+widgets:
+  - obj:
+      width: 100%
+      bg_opa: TRANSP
+      styles: page_bg_style
+      pad_all: 15
+      layout: { type: flex, flex_flow: COLUMN }
+      widgets:
+        # --- СЕКЦИЯ: КЛИМАТ ---
+        - label: { text: "КЛІМАТ 1 ПОВЕРХ", styles: group_label_style }
+        - obj:
+            width: 100%
+            height: 155
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW }
+            widgets:
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Коридор", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: temp_hall_label, text: "--.-°C", align: BOTTOM_LEFT, x: 15, y: -15 }
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Спальня", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: temp_bedroom_label, text: "--.-°C", align: BOTTOM_LEFT, x: 15, y: -15 }
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Бойлерна", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: temp_techroom_label, text: "--.-°C", align: BOTTOM_LEFT, x: 15, y: -15 }
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Кухня", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: temp_kitchen_label, text: "--.-°C", align: BOTTOM_LEFT, x: 15, y: -15 }
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Ванна", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: temp_bathroom_label, text: "--.-°C", align: BOTTOM_LEFT, x: 15, y: -15 }
+        # --- СЕКЦИЯ: КЛИМАТ ---
+        - label: { text: "КЛІМАТ 2 ПОВЕРХ", styles: group_label_style }
+        - obj:
+            width: 100%
+            height: 155
+            y: 40
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW }
+            widgets:
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Другий поверх", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: second_floor_temp_label2, text: "--.-°C", align: BOTTOM_LEFT, x: 15, y: -15 }
+

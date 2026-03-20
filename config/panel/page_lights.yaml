@@ -1,0 +1,86 @@
+# config/panel/page_lights.yaml
+id: page_lights
+widgets:
+  - obj:
+      width: 100%
+      bg_opa: TRANSP
+      styles: page_bg_style
+      pad_all: 15
+      layout: { type: flex, flex_flow: COLUMN }
+      widgets:
+        # --- СЕКЦИЯ: СЕРВИС ---
+        - label: { text: "СЕРВІС", styles: group_label_style, y: 20 }
+        - obj:
+            width: 100%
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW }
+            widgets:
+              - button:
+                  styles: button_style
+                  checkable: true
+                  id: btn_backlight
+                  widgets:
+                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "Підсвітка панелі", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
+                  on_click:
+                    then:
+                      - light.toggle: display_backlight
+        # --- СЕКЦИЯ: ОСВЕЩЕНИЕ ---
+        - label: { text: "ОСВІТЛЕННЯ", styles: group_label_style, y: 20 }
+        - obj:
+            width: 100%
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW_WRAP }
+            widgets:
+              - button:
+                  styles: button_style
+                  checkable: true
+                  id: btn_kitchen_lights
+                  widgets:
+                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "Кухня", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
+                  on_click:
+                    then:
+                      - switch.toggle: switch_kitchen_lights
+              - button:
+                  styles: button_style
+                  checkable: true
+                  id: btn_external_lights
+                  widgets:
+                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "Підсвітка будинку", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
+                  on_click:
+                    then:
+                      - switch.toggle: switch_external_lights
+              - button:
+                  styles: button_style
+                  checkable: true
+                  id: btn_bedroom
+                  widgets:
+                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "Спальня", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
+                  on_click:
+                    then:
+                      - switch.toggle: switch_bedroom
+              - button:
+                  styles: button_style
+                  checkable: true
+                  id: btn_bathroom
+                  widgets:
+                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "Ванна", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
+                  on_click:
+                    then:
+                      - switch.toggle: switch_bathroom
+              - button:
+                  styles: button_style
+                  checkable: true
+                  id: btn_hall
+                  widgets:
+                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "Передпокій", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
+                  on_click:
+                    then:
+                      - switch.toggle: switch_hall

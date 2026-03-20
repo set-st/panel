@@ -1,0 +1,54 @@
+# config/panel/page_dash.yaml
+id: page_dash
+widgets:
+  - obj:
+      width: 100%
+      bg_opa: TRANSP
+      styles: page_bg_style
+      pad_all: 15
+      layout: { type: flex, flex_flow: COLUMN }
+      widgets:
+        # --- СЕКЦИЯ: КЛИМАТ ---
+        - label: { text: "КЛІМАТ", styles: group_label_style }
+        - obj:
+            width: 100%
+            bg_opa: TRANSP
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW }
+            widgets:
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Середня у будинку", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: dash_temp_label, text: "--.-°", align: BOTTOM_LEFT, x: 15, y: -15 }
+              - obj:
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "Другий поверх", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: second_floor_temp_label, text: "--.-°", align: BOTTOM_LEFT, x: 15, y: -15 }
+              - obj:
+                  x: 20
+                  styles: card_style
+                  widgets:
+                    - label: { text: "\U000F050F", x: 15, y: 15, text_font: mdi_20, text_color: 0x64D2FF }
+                    - label: { text: "На вулиці", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: dash_outside_temp_label, text: "--.-°", align: BOTTOM_LEFT, x: 15, y: -15 }
+
+        # --- СЕКЦИЯ: БЕЗОПАСНОСТЬ ---
+        - label: { text: "БЕЗПЕКА", styles: group_label_style, y: 20 }
+        - obj:
+            width: 100%
+            bg_opa: TRANSP
+            styles: group_style
+            pad_all: 15
+            layout: { type: flex, flex_flow: COLUMN }
+            widgets:
+              - obj:
+                  styles: card_style
+                  id: dash_alarm_card
+                  widgets:
+                    - label: { text: "\U000F0590", x: 15, y: 15, text_font: mdi_20, text_color: 0xFFD700 }
+                    - label: { text: "Повітряна тривога", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { id: dash_alarm_text, text: "НЕБО ЧИСТЕ", align: BOTTOM_LEFT, text_font: roboto_22 }

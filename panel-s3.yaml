@@ -1,0 +1,445 @@
+esphome:
+  name: esp32-s3-touch-lcd-7b
+  friendly_name: "Controll Panel"
+  platformio_options:
+    board_build.flash_mode: dio
+    board_build.partitions: partitions.csv
+  on_boot:
+    priority: -100
+    then:
+      - light.turn_on:
+          id: display_backlight
+          brightness: !lambda "return id(current_brightness);"
+
+http_request:
+  verify_ssl: false
+
+esp32:
+  board: esp32s3box
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    advanced:
+      loop_task_stack_size: 8192
+    sdkconfig_options:
+      COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+      CONFIG_ESP_TASK_WDT_TIMEOUT_S: "60"
+      CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: y
+      CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM: "16"
+      CONFIG_ESP_CONSOLE_UART_DEFAULT: y
+      CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG: y
+      CONFIG_ESP_INT_WDT_TIMEOUT_MS: "3000"
+      CONFIG_LOG_DEFAULT_LEVEL_INFO: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+external_components:
+  - source: github://pr#10071
+    components: [waveshare_io_ch32v003]
+    refresh: 1h
+
+logger:
+  level: DEBUG
+  hardware_uart: USB_SERIAL_JTAG
+
+api:
+  reboot_timeout: 15min
+  encryption:
+    key: "CE8BO+MhPzJUmZPTrWKOA6uytbyTxZUkexxKxmwMGA4="
+
+captive_portal:
+
+web_server:
+  port: 80
+  version: 3
+
+ota:
+  - platform: esphome
+    on_begin:
+      - lvgl.pause:
+      - logger.log: "OTA started, LVGL paused"
+    on_end:
+      - lvgl.resume:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  power_save_mode: none
+  ap:
+    ssid: "Controll Panel Fallback"
+  manual_ip:
+    static_ip: 192.168.1.178
+    gateway: 192.168.1.1
+    subnet: 255.255.255.0
+    dns1: 1.1.1.1
+    dns2: 8.8.8.8
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "EET-2EEST,M3.5.0/3,M10.5.0/4"
+
+# --- Sensors ---
+sensor:
+  - platform: homeassistant
+    id: house_temp
+    entity_id: sensor.average_house_temperature
+  - platform: homeassistant
+    id: floor_temp
+    entity_id: sensor.second_floor_hall_temperature
+  - platform: homeassistant
+    id: bedroom_temp
+    entity_id: sensor.bedroom_temperature
+  - platform: homeassistant
+    id: techroom_temp
+    entity_id: sensor.temp_humidity_sensor_2_temperature
+  - platform: homeassistant
+    id: hall_temp
+    entity_id: sensor.temp_humidity_sensor_temperature
+  - platform: homeassistant
+    id: kitchen_temp
+    entity_id: sensor.smart_ir_with_t_h_sensor_temperature
+  - platform: homeassistant
+    id: bathroom_temp
+    entity_id: sensor.bathroom_temperature
+  - platform: homeassistant
+    id: outside_temp
+    entity_id: sensor.openweathermap_temperature
+
+  # --- MUST Inverter Sensors ---
+  - platform: homeassistant
+    id: must_pv_voltage
+    entity_id: sensor.must_pv_voltage
+  - platform: homeassistant
+    id: must_grid_voltage
+    entity_id: sensor.must_grid_voltage
+  - platform: homeassistant
+    id: must_battery_voltage
+    entity_id: sensor.must_battery_voltage
+  - platform: homeassistant
+    id: must_inverter_voltage
+    entity_id: sensor.must_inverter_voltage
+  - platform: homeassistant
+    id: must_output_voltage
+    entity_id: sensor.must_output_voltage
+  - platform: homeassistant
+    id: must_p_grid
+    entity_id: sensor.must_p_grid
+  - platform: homeassistant
+    id: must_p_inverter
+    entity_id: sensor.must_p_inverter
+  - platform: homeassistant
+    id: must_p_load
+    entity_id: sensor.must_p_load
+  - platform: homeassistant
+    id: must_grid_current
+    entity_id: sensor.must_grid_current
+  - platform: homeassistant
+    id: must_inverter_current
+    entity_id: sensor.must_inverter_current
+  - platform: homeassistant
+    id: must_load_current
+    entity_id: sensor.must_load_current
+
+  # --- Smart MAIC Sensors ---
+  - platform: homeassistant
+    id: maic_v1
+    entity_id: sensor.maic_voltage_1
+  - platform: homeassistant
+    id: maic_v2
+    entity_id: sensor.maic_voltage_2
+  - platform: homeassistant
+    id: maic_v3
+    entity_id: sensor.maic_voltage_3
+  - platform: homeassistant
+    id: maic_p1
+    entity_id: sensor.maic_power_1
+  - platform: homeassistant
+    id: maic_p2
+    entity_id: sensor.maic_power_2
+  - platform: homeassistant
+    id: maic_p3
+    entity_id: sensor.maic_power_3
+  - platform: homeassistant
+    id: maic_c1
+    entity_id: sensor.maic_current_1
+  - platform: homeassistant
+    id: maic_c2
+    entity_id: sensor.maic_current_2
+  - platform: homeassistant
+    id: maic_c3
+    entity_id: sensor.maic_current_3
+  - platform: homeassistant
+    id: house_total_p
+    entity_id: sensor.house_consumption_in_w_kwh_total
+  - platform: homeassistant
+    id: house_total_c
+    entity_id: sensor.house_consumption_in_a_total
+
+  - platform: wifi_signal
+    id: wifi_rssi
+    update_interval: 10s
+
+  # --- Internal Battery ---
+  - platform: waveshare_io_ch32v003
+    name: "Internal Battery Voltage"
+    id: internal_bat_voltage
+    update_interval: 60s
+
+  - platform: template
+    id: internal_bat_pct
+    name: "Internal Battery Percentage"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    lambda: |-
+      float volt = id(internal_bat_voltage).state;
+      // Если 9.9V — это максимум при питании от USB, то калибруем
+      // Нам нужно дождаться реальных данных при работе от АКБ
+      if (volt >= 4.2) return 100.0;
+      if (volt <= 3.4) return 0.0;
+      return (volt - 3.4) / (4.2 - 3.4) * 100.0;
+    update_interval: 60s
+
+binary_sensor:
+  - platform: homeassistant
+    id: air_alarm
+    entity_id: binary_sensor.feodosiivska_teritorialna_gromada_air
+
+switch:
+  - platform: homeassistant
+    id: switch_external_lights
+    entity_id: switch.externallightsdirect
+  - platform: homeassistant
+    id: switch_bedroom
+    entity_id: switch.bedroomwallswitchdirect
+  - platform: homeassistant
+    id: switch_bathroom
+    entity_id: switch.bathroom_switch_switch_1
+  - platform: homeassistant
+    id: switch_hall
+    entity_id: switch.hall_lights_switch_1
+  - platform: homeassistant
+    id: switch_kitchen_lights
+    entity_id: switch.plant_grow_light_switch_1
+
+# --- Hardware ---
+waveshare_io_ch32v003:
+  - id: waveshare_io_hub
+
+i2c:
+  - id: bus_a
+    sda: GPIO08
+    scl: GPIO09
+    scan: true
+
+display:
+  - platform: rpi_dpi_rgb
+    id: my_display
+    update_interval: never
+    auto_clear_enabled: false
+    color_order: RGB
+    pclk_frequency: 30MHZ
+    dimensions: { width: 1024, height: 600 }
+    de_pin: 5
+    hsync_pin: { number: 46, ignore_strapping_warning: true }
+    vsync_pin: { number: 3, ignore_strapping_warning: true }
+    pclk_pin: 7
+    pclk_inverted: true
+    reset_pin: { waveshare_io_ch32v003: waveshare_io_hub, number: 3 }
+    hsync_back_porch: 152
+    hsync_front_porch: 48
+    hsync_pulse_width: 162
+    vsync_back_porch: 13
+    vsync_front_porch: 3
+    vsync_pulse_width: 45
+    data_pins:
+      red:   [1, 2, 42, 41, 40]
+      blue:  [14, 38, 18, 17, 10]
+      green: [39, 0, 45, 48, 47, 21]
+
+touchscreen:
+  platform: gt911
+  id: my_touchscreen
+  display: my_display
+  i2c_id: bus_a
+  interrupt_pin: GPIO4
+  reset_pin:
+    waveshare_io_ch32v003: waveshare_io_hub
+    number: 1
+    mode: OUTPUT
+  on_touch:
+    then:
+      - lambda: |-
+          if (id(idle_counter) == 0) {
+            auto call = id(display_backlight).make_call();
+            call.set_brightness(id(current_brightness));
+            call.perform();
+          }
+          id(idle_counter) = id(idle_timeout_s);
+
+output:
+  - platform: waveshare_io_ch32v003
+    id: pwm_backlight_output
+    inverted: true
+
+light:
+  - platform: monochromatic
+    output: pwm_backlight_output
+    name: Display Backlight
+    id: display_backlight
+    restore_mode: RESTORE_DEFAULT_ON
+
+# --- LVGL MODULAR INTERFACE ---
+packages:
+  logic: !include base_logic.yaml
+  gui: !include gui.yaml
+
+lvgl:
+  displays: [my_display]
+  touchscreens: [my_touchscreen]
+
+globals:
+  - id: screen_cycling_enabled
+    type: bool
+    restore_value: yes
+    initial_value: 'true'
+  - id: boot_completed
+    type: bool
+    initial_value: 'false'
+  - id: current_brightness
+    type: float
+    restore_value: yes
+    initial_value: '0.8'
+  - id: idle_timeout_s
+    type: int
+    restore_value: yes
+    initial_value: '60'
+  - id: idle_counter
+    type: int
+    initial_value: '60'
+
+interval:
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            lambda: 'return id(screen_cycling_enabled) && id(idle_counter) == 0;'
+          then:
+            lvgl.page.next:
+  - interval: 1s
+    then:
+      - lambda: |-
+          /* // Boot logic ... */
+
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
+            lv_label_set_text(id(top_date_label), now.strftime("%d.%m.%Y").c_str());
+          }
+
+          if (id(idle_counter) > 0) {
+            id(idle_counter)--;
+            if (id(idle_counter) == 0) {
+              id(display_backlight).make_call().set_brightness(0.03).perform();
+            }
+          }
+
+          bool ha_ok = api_apiserver_id->is_connected();
+          lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(ha_ok ? 0x00FF00 : 0xFF0000), 0);
+
+          if (id(wifi_rssi).has_state() && !std::isnan(id(wifi_rssi).state)) {
+              float rssi = id(wifi_rssi).state;
+              int level = (rssi >= -55.0) ? 4 : (rssi >= -65.0) ? 3 : (rssi >= -75.0) ? 2 : (rssi >= -85.0) ? 1 : 0;
+              const char* icons[] = {"\U0000E934", "\U0000E931", "\U0000E932", "\U0000E933", "\U0000E934"};
+              lv_label_set_text(id(lbl_wifi_signal), icons[level]);
+          }
+
+          if (!std::isnan(id(house_temp).state)) {
+            static char t_buf[16];
+            sprintf(t_buf, "%.1f°C", id(house_temp).state);
+            lv_label_set_text(id(lbl_top_temp), t_buf);
+          }
+
+          if (!std::isnan(id(internal_bat_pct).state)) {
+              int pct = (int)id(internal_bat_pct).state;
+              const char* icon = (pct >= 90) ? "\U000F007E" : (pct >= 70) ? "\U000F0081" : (pct >= 50) ? "\U000F007F" : (pct >= 30) ? "\U000F007D" : (pct >= 10) ? "\U000F007B" : "\U000F0083";
+              lv_label_set_text(id(lbl_bat_icon), icon);
+              uint32_t color = (pct >= 70) ? 0x00FF00 : (pct >= 30) ? 0xFFFF00 : 0xFF0000;
+              lv_obj_set_style_text_color(id(lbl_bat_icon), lv_color_hex(color), 0);
+          }
+
+          // Update other labels...
+          if (!std::isnan(id(house_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(house_temp).state);
+            lv_label_set_text(id(dash_temp_label), buf);
+            lv_label_set_text(id(temp_hall_label), buf);
+          }
+          if (!std::isnan(id(floor_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(floor_temp).state);
+            lv_label_set_text(id(second_floor_temp_label), buf);
+            lv_label_set_text(id(second_floor_temp_label2), buf);
+          }
+          if (!std::isnan(id(bedroom_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(bedroom_temp).state);
+            lv_label_set_text(id(temp_bedroom_label), buf);
+          }
+          if (!std::isnan(id(techroom_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(techroom_temp).state);
+            lv_label_set_text(id(temp_techroom_label), buf);
+          }
+          if (!std::isnan(id(outside_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(outside_temp).state);
+            lv_label_set_text(id(dash_outside_temp_label), buf);
+          }
+          if (!std::isnan(id(kitchen_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(kitchen_temp).state);
+            lv_label_set_text(id(temp_kitchen_label), buf);
+          }
+          if (!std::isnan(id(bathroom_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(bathroom_temp).state);
+            lv_label_set_text(id(temp_bathroom_label), buf);
+          }
+
+          // SOLAR PAGE
+          static char sbuf[32];
+          if (!std::isnan(id(must_pv_voltage).state)) { sprintf(sbuf, "%.1fV", id(must_pv_voltage).state); lv_label_set_text(id(solar_voltage), sbuf); }
+          if (!std::isnan(id(must_grid_voltage).state)) { sprintf(sbuf, "%.1fV", id(must_grid_voltage).state); lv_label_set_text(id(solar_grid_voltage_f1), sbuf); }
+          if (!std::isnan(id(must_battery_voltage).state)) { sprintf(sbuf, "%.1fV", id(must_battery_voltage).state); lv_label_set_text(id(solar_battery_voltage), sbuf); }
+          if (!std::isnan(id(maic_v1).state)) { sprintf(sbuf, "F1: %.0fV", id(maic_v1).state); lv_label_set_text(id(power_voltage_f1), sbuf); }
+          if (!std::isnan(id(maic_v2).state)) { sprintf(sbuf, "F2: %.0fV", id(maic_v2).state); lv_label_set_text(id(power_voltage_f2), sbuf); }
+          if (!std::isnan(id(maic_v3).state)) { sprintf(sbuf, "F3: %.0fV", id(maic_v3).state); lv_label_set_text(id(power_voltage_f3), sbuf); }
+          if (!std::isnan(id(maic_p1).state)) { sprintf(sbuf, "F1: %.0fW", id(maic_p1).state); lv_label_set_text(id(power_power_f1), sbuf); }
+          if (!std::isnan(id(maic_p2).state)) { sprintf(sbuf, "F2: %.0fW", id(maic_p2).state); lv_label_set_text(id(power_power_f2), sbuf); }
+          if (!std::isnan(id(maic_p3).state)) { sprintf(sbuf, "F3: %.0fW", id(maic_p3).state); lv_label_set_text(id(power_power_f3), sbuf); }
+          if (!std::isnan(id(maic_c1).state)) { sprintf(sbuf, "F1: %.1fA", id(maic_c1).state); lv_label_set_text(id(power_current_f1), sbuf); }
+          if (!std::isnan(id(maic_c2).state)) { sprintf(sbuf, "F2: %.1fA", id(maic_c2).state); lv_label_set_text(id(power_current_f2), sbuf); }
+          if (!std::isnan(id(maic_c3).state)) { sprintf(sbuf, "F3: %.1fA", id(maic_c3).state); lv_label_set_text(id(power_current_f3), sbuf); }
+          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.0fW", id(house_total_p).state); lv_label_set_text(id(power_total_power), sbuf); }
+          if (!std::isnan(id(house_total_c).state)) { sprintf(sbuf, "%.1fA", id(house_total_c).state); lv_label_set_text(id(power_total_current), sbuf); }
+
+          bool alarm = id(air_alarm).state;
+          lv_label_set_text(id(dash_alarm_text), alarm ? "ТРИВОГА!" : "НЕБО ЧИСТЕ");
+          lv_obj_set_style_bg_color(id(dash_alarm_card), lv_color_hex(alarm ? 0x60120E : 0x17320E), 0);
+
+button:
+  - platform: restart
+    id: reboot_btn
+  - platform: template
+    id: btn_backlight_switch
+    internal: true
+    on_press:
+      then:
+        - light.toggle: display_backlight
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      id: wifi_ip_address

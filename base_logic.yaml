@@ -1,0 +1,120 @@
+# base_logic.yaml
+# Единое хранилище шрифтов и базовых ресурсов
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto_14
+    size: 14
+    bpp: 2
+    glyphsets: [GF_Latin_Core, GF_Cyrillic_Core]
+  - file: "gfonts://Roboto"
+    id: roboto_22
+    size: 22
+    bpp: 2
+    glyphsets: [GF_Latin_Core, GF_Cyrillic_Core]
+  - file: "gfonts://Roboto"
+    id: roboto_60
+    size: 60
+    bpp: 2
+  - file: "font/materialdesignicons-webfont.ttf"
+    id: mdi_20
+    size: 20
+    bpp: 4
+    glyphs: [
+        "\U000F07D0", # home assistant
+        "\U000F15FA", # windsock
+        "\U000F068A", # shield home
+        "\U000F1828", # shield moon
+        "\U000F099D", # shield lock
+        "\U000F06BB", # shield plane
+        "\U000F099E", # shield off
+        "\U000F0498", # shield
+        "\U000F0493", # settings
+        "\U000F032A", # preset eco
+        "\U000F0F9B", # preset away
+        "\U000F14DE", # preset boost     
+        "\U000F04B9", # preset comfort
+        "\U000F02DC", # preset home
+        "\U000F0904", # preset sleep
+        "\U000F046E", # preset activity
+        "\U000F09D1", # present smart
+        "\U000F0210", # fan on
+        "\U000F081D", # fan off
+        "\U000F171D", # fan auto
+        "\U000F1472", # fan speed 1
+        "\U000F1473", # fan speed 2
+        "\U000F1474", # fan speed 3
+        "\U000F0F86", # fan low
+        "\U000F0F85", # fan medium/middle
+        "\U000F04C5", # fan high
+        "\U000F04FE", # fan focus
+        "\U000F059D", # fan diffuse
+        "\U000F09DF", # fan custom
+        "\U000F0041", # swing both
+        "\U000F0E79", # swing vertical
+        "\U000F0E73", # swing horizontal
+        "\U000F0914", # track light
+        "\U000F18DD", # ceiling light multiple
+        "\U000F08DD", # floor lamp
+        "\U000F11E1", # vanity light
+        "\U000F1846", # curtains_opened
+        "\U000F1847", # curtains_closed
+        "\U000F111C", # shutter_closed
+        "\U000F111E", # shutter_opened
+        "\U000F12D3", # garage_closed
+        "\U000F12D4", # garage_opened
+        "\U000F00AC", # blinds_closed 
+        "\U000F1011", # blinds_opened
+        "\U000F048B", # LAN
+        "\U000F048C", # LAN-DISCONNECT
+        "\U000F050F", # THERMOMETER
+        "\U000F0301", # HUMIDITY
+        "\U000F00FE", # MOON
+        "\U000F0590", # WEATHER-CLOUDY
+        "\U000F007E", # battery-100
+        "\U000F0081", # battery-80
+        "\U000F007F", # battery-60
+        "\U000F007D", # battery-40
+        "\U000F007B", # battery-20
+        "\U000F0083", # battery-outline
+        "\U000F0084", # battery-charging
+        "\U000F032B", # LIGHTBULB
+        "\U000F0079", # BATTERY
+        "\U000F0410", # POWER
+        "\U000F0141", # CHEVRON-LEFT
+        "\U000F0142", # CHEVRON-RIGHT
+        "\U000F012B", # HOME
+        "\U000F054F", # PLUS
+        "\U000F0374", # MINUS
+        "\U000F0425", # REFRESH
+        "\U000F010C", # CIRCLE-OUTLINE
+        "\U000F0599", # WEATHER-SUNNY
+        "\U000F0593", # WEATHER-PARTLY-CLOUDY
+        "\U000F0596", # WEATHER-RAINY
+        "\U000F059A", # WEATHER-SNOWY
+        "\U000F0591", # WEATHER-FOG
+        "\U000F0595", # WEATHER-POURING
+        "\U000F0597", # WEATHER-SNOWY-RAINY
+        "\U000F0598", # WEATHER-STORMY
+        "\U000F0592", # WEATHER-HAIL
+        "\U000F0594", # WEATHER-NIGHT
+        "\U000F0190"  # CPU-64-BIT
+      ]
+  - file: "font/icons_v2.ttf"
+    id: icons_20
+    size: 20
+    bpp: 4
+    glyphs: [
+      "\U0000e900", # brightness
+      "\U0000e901", # saturation
+      "\U0000e925", # thermostat
+      "\U0000e93b", # air_conditioner 
+      "\U0000e936", # heating
+      "\U0000e92e", # lock
+      "\U0000e935", # home assistant
+      "\U0000e931", # wifi signal from 25% to 1%
+      "\U0000e932", # wifi signal from 50% to 25%
+      "\U0000e933", # wifi signal from 75% to 50%
+      "\U0000e934", # wifi signal from 100% to 75% or disable
+      "\U0000e938", # humidity
+    ]

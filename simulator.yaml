@@ -1,0 +1,189 @@
+# simulator.yaml
+esphome:
+  name: panel-simulator
+
+host:
+
+logger:
+  level: DEBUG
+
+# ВАЖНО: сначала шрифты, потом интерфейс
+packages:
+  logic: !include base_logic.yaml
+  gui: !include gui.yaml
+
+# Виртуальный дисплей
+display:
+  - platform: sdl
+    id: my_display
+    dimensions: { width: 1024, height: 600 }
+
+touchscreen:
+  - platform: sdl
+    id: my_touchscreen
+    display: my_display
+
+# Заглушки для глобальных переменных
+globals:
+  - id: screen_cycling_enabled
+    type: bool
+    initial_value: 'true'
+  - id: boot_completed
+    type: bool
+    initial_value: 'true'
+  - id: current_brightness
+    type: float
+    initial_value: '0.8'
+  - id: idle_timeout_s
+    type: int
+    initial_value: '60'
+  - id: idle_counter
+    type: int
+    initial_value: '60'
+
+# Заглушки для сенсоров
+sensor:
+  - platform: template
+    id: wifi_rssi
+    lambda: "return -60.0;"
+  - platform: template
+    id: internal_bat_pct
+    lambda: "return 85.0;"
+  - platform: template
+    id: outside_temp
+    lambda: "return 12.5;"
+  - platform: template
+    id: house_temp
+    lambda: "return 22.0;"
+  - platform: template
+    id: floor_temp
+    lambda: "return 21.5;"
+  - platform: template
+    id: bedroom_temp
+    lambda: "return 22.2;"
+  - platform: template
+    id: techroom_temp
+    lambda: "return 19.0;"
+  - platform: template
+    id: hall_temp
+    lambda: "return 21.0;"
+  - platform: template
+    id: kitchen_temp
+    lambda: "return 23.0;"
+  - platform: template
+    id: bathroom_temp
+    lambda: "return 24.0;"
+  - platform: template
+    id: maic_v1
+    lambda: "return 230.0;"
+  - platform: template
+    id: maic_v2
+    lambda: "return 231.0;"
+  - platform: template
+    id: maic_v3
+    lambda: "return 229.0;"
+  - platform: template
+    id: maic_p1
+    lambda: "return 500.0;"
+  - platform: template
+    id: maic_p2
+    lambda: "return 300.0;"
+  - platform: template
+    id: maic_p3
+    lambda: "return 1200.0;"
+  - platform: template
+    id: maic_c1
+    lambda: "return 2.2;"
+  - platform: template
+    id: maic_c2
+    lambda: "return 1.3;"
+  - platform: template
+    id: maic_c3
+    lambda: "return 5.4;"
+  - platform: template
+    id: house_total_p
+    lambda: "return 2000.0;"
+  - platform: template
+    id: house_total_c
+    lambda: "return 8.9;"
+  - platform: template
+    id: must_pv_voltage
+    lambda: "return 150.0;"
+  - platform: template
+    id: must_grid_voltage
+    lambda: "return 230.0;"
+  - platform: template
+    id: must_battery_voltage
+    lambda: "return 54.2;"
+
+binary_sensor:
+  - platform: template
+    id: air_alarm
+    lambda: "return false;"
+
+switch:
+  - platform: template
+    id: switch_external_lights
+    optimistic: true
+  - platform: template
+    id: switch_kitchen_lights
+    optimistic: true
+  - platform: template
+    id: switch_bedroom
+    optimistic: true
+  - platform: template
+    id: switch_bathroom
+    optimistic: true
+  - platform: template
+    id: switch_hall
+    optimistic: true
+
+button:
+  - platform: template
+    id: reboot_btn
+  - platform: template
+    id: btn_backlight_switch
+
+text_sensor:
+  - platform: template
+    id: wifi_ip_address
+    lambda: 'return {"192.168.1.100"};'
+
+output:
+  - platform: template
+    id: pwm_backlight_output
+    type: float
+    write_action: [lambda: "(void)0;"]
+
+light:
+  - platform: monochromatic
+    output: pwm_backlight_output
+    id: display_backlight
+
+time:
+  - platform: host
+    id: sntp_time
+
+# Логика обновления для симулятора
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
+            lv_label_set_text(id(top_date_label), now.strftime("%d.%m.%Y").c_str());
+          }
+          lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(0x00FF00), 0);
+          
+          if (!std::isnan(id(internal_bat_pct).state)) {
+              int pct = (int)id(internal_bat_pct).state;
+              const char* icon = (pct >= 90) ? "\U000F007E" : (pct >= 70) ? "\U000F0081" : (pct >= 50) ? "\U000F007F" : (pct >= 30) ? "\U000F007D" : (pct >= 10) ? "\U000F007B" : "\U000F0083";
+              lv_label_set_text(id(lbl_bat_icon), icon);
+          }
+          
+          if (!std::isnan(id(house_temp).state)) {
+            static char t_buf[16];
+            sprintf(t_buf, "%.1f°C", id(house_temp).state);
+            lv_label_set_text(id(lbl_top_temp), t_buf);
+          }

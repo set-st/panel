@@ -1,0 +1,133 @@
+# gui.yaml
+# Весь графический интерфейс (стили, страницы, слои)
+
+lvgl:
+  id: my_lvgl
+  buffer_size: 15%
+  bg_color: 0x050505
+  update_interval: 32ms 
+
+  theme:
+    button:
+      bg_color: 0x0B1114
+      text_color: 0xFFFFFF
+      border_width: 0
+      outline_width: 0
+      shadow_width: 0
+      checked:
+        bg_color: 0x17320E
+        text_color: 0xFFFFFF
+
+  style_definitions:
+    - id: page_bg_style
+      bg_color: 0x0B1114
+      bg_opa: cover
+      border_color: 0x1A1D23
+      radius: 0
+      border_width: 0
+      scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+      height: 500
+      y: 50
+    - id: header_style
+      bg_color: "0x07293E"
+      bg_opa: 100%
+      width: 100%
+      height: 50
+      radius: 0
+      border_width: 0
+      pad_all: 10
+      scrollbar_mode: "OFF"
+    - id: footer_style
+      bg_color: "0x07293E"
+      bg_opa: 100%
+      width: 100%
+      height: 50
+      radius: 0
+      pad_all: 0
+      border_width: 0
+      outline_width: 0
+      shadow_width: 0
+      scrollbar_mode: "OFF"
+    - id: card_style
+      width: 220
+      height: 120
+      bg_color: 0x0B1114
+      bg_opa: cover
+      border_color: 0x1A1D23
+      radius: 10
+      text_font: roboto_22
+      scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+    - id: button_style
+      width: 180
+      height: 120
+      bg_color: 0x0B1114
+      bg_opa: cover
+      border_color: 0x1A1D23
+      radius: 10
+      text_font: roboto_22
+      scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+    - id: group_style
+      bg_color: 0x0B1114
+      bg_opa: cover
+      border_color: 0x1A1D23
+      radius: 0
+      border_width: 0
+      scrollbar_mode: "OFF"
+      width: 100%
+      height: 150
+      text_color: 0xFFFFFF
+    - id: card_active_style
+      bg_color: 0x2C2C2E
+      radius: 12
+      border_width: "0"
+      border_color: 0x0A84FF
+    - id: group_label_style
+      text_color: 0xFFFFFF
+      text_font: roboto_22
+      border_width: 0
+    - id: btn_nav_style
+      bg_opa: transp
+      border_width: 0
+      outline_width: 0
+      shadow_width: 0
+      height: 100%
+      radius: 10
+      scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+    - id: slider_style
+      bg_color: "0xAFC1D0"
+      border_width: 2
+      height: 40
+      width: 598
+    - id: btn_centered_style
+      width: 150
+      height: 50
+      bg_color: 0x003C78
+      bg_opa: cover
+      border_width: 0
+      radius: 8
+      text_color: 0xFFFFFF
+      pad_all: 0
+    - id: card_style_triple
+      width: 220
+      height: 170
+      bg_color: 0x0B1114
+      bg_opa: cover
+      border_color: 0x1A1D23
+      radius: 10
+      text_font: roboto_22
+      scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+
+  top_layer: !include config/panel/top_layer.yaml
+
+  pages:
+    # - !include config/panel/page_boot.yaml
+    - !include config/panel/page_dash.yaml
+    - !include config/panel/page_lights.yaml
+    - !include config/panel/page_temp.yaml
+    - !include config/panel/page_solar.yaml
+    - !include config/panel/page_settings.yaml
