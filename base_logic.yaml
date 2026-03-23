@@ -71,13 +71,17 @@ font:
         "\U000F0301", # HUMIDITY
         "\U000F00FE", # MOON
         "\U000F0590", # WEATHER-CLOUDY
-        "\U000F007E", # battery-100
         "\U000F0081", # battery-80
         "\U000F007F", # battery-60
         "\U000F007D", # battery-40
         "\U000F007B", # battery-20
-        "\U000F0083", # battery-outline
         "\U000F0084", # battery-charging
+        "\U000F0082", # 90
+        "\U000F0080", # 70
+        "\U000F007E", # 50
+        "\U000F007C", # 30
+        "\U000F007A", # 10
+        "\U000F0083", # outline
         "\U000F032B", # LIGHTBULB
         "\U000F0079", # BATTERY
         "\U000F0410", # POWER

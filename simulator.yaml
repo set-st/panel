@@ -180,6 +180,9 @@ interval:
               int pct = (int)id(internal_bat_pct).state;
               const char* icon = (pct >= 90) ? "\U000F007E" : (pct >= 70) ? "\U000F0081" : (pct >= 50) ? "\U000F007F" : (pct >= 30) ? "\U000F007D" : (pct >= 10) ? "\U000F007B" : "\U000F0083";
               lv_label_set_text(id(lbl_bat_icon), icon);
+              static char b_buf[8];
+              sprintf(b_buf, "%d%%", pct);
+              lv_label_set_text(id(lbl_bat_text), b_buf);
           }
           
           if (!std::isnan(id(house_temp).state)) {

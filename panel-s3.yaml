@@ -190,8 +190,9 @@ sensor:
 
   # --- Internal Battery ---
   - platform: waveshare_io_ch32v003
-    name: "Internal Battery Voltage"
-    id: internal_bat_voltage
+    name: "Battery level"
+    id: wave_adc
+    reference_voltage: 9.9
     update_interval: 60s
 
   - platform: template
@@ -200,12 +201,19 @@ sensor:
     unit_of_measurement: "%"
     accuracy_decimals: 0
     lambda: |-
-      float volt = id(internal_bat_voltage).state;
-      // Если 9.9V — это максимум при питании от USB, то калибруем
-      // Нам нужно дождаться реальных данных при работе от АКБ
-      if (volt >= 4.2) return 100.0;
-      if (volt <= 3.4) return 0.0;
-      return (volt - 3.4) / (4.2 - 3.4) * 100.0;
+      float volt = id(wave_adc).state;
+      if (std::isnan(volt)) return {};
+      
+      // Замените 4.05 на то, что реально показывает ваш wave_adc при 100%
+      // Замените 3.1 на то, при котором панель реально отключается
+      float max_v = 4.05; 
+      float min_v = 3.1;
+      
+      float pct = (volt - min_v) / (max_v - min_v) * 100.0;
+      
+      if (pct > 100.0) pct = 100.0;
+      if (pct < 0.0) pct = 0.0;
+      return pct;
     update_interval: 60s
 
 binary_sensor:
@@ -369,13 +377,39 @@ interval:
           }
 
           if (!std::isnan(id(internal_bat_pct).state)) {
-              int pct = (int)id(internal_bat_pct).state;
-              const char* icon = (pct >= 90) ? "\U000F007E" : (pct >= 70) ? "\U000F0081" : (pct >= 50) ? "\U000F007F" : (pct >= 30) ? "\U000F007D" : (pct >= 10) ? "\U000F007B" : "\U000F0083";
-              lv_label_set_text(id(lbl_bat_icon), icon);
-              uint32_t color = (pct >= 70) ? 0x00FF00 : (pct >= 30) ? 0xFFFF00 : 0xFF0000;
-              lv_obj_set_style_text_color(id(lbl_bat_icon), lv_color_hex(color), 0);
-          }
+              int pct = (int)clamp((float)id(internal_bat_pct).state, 0.0f, 100.0f);
+              
+              // 1. Определяем иконку и цвет через структуру
+              const char* icon = "\U000F0083"; // По умолчанию пустая
+              uint32_t color = 0xFF0000;       // По умолчанию красная
 
+              // Если есть сенсор зарядки, подставь его ID сюда
+              // if (id(is_charging_sensor).state) { 
+              //     icon = "\U000F0084"; // battery-charging
+              //     color = 0x00FF00;
+              // } else {
+                  if (pct >= 95)      { icon = "\U000F0079"; color = 0x00FF00; } // Полная (Battery-100)
+                  else if (pct >= 80) { icon = "\U000F0082"; color = 0x00FF00; } // 90%
+                  else if (pct >= 65) { icon = "\U000F0080"; color = 0x00FF00; } // 70%
+                  else if (pct >= 45) { icon = "\U000F007E"; color = 0xFFFF00; } // 50% (то, что у вас сейчас на 100%)
+                  else if (pct >= 25) { icon = "\U000F007C"; color = 0xFFFF00; } // 30%
+                  else if (pct >= 10) { icon = "\U000F007A"; color = 0xFF0000; } // 10%
+                  else                { icon = "\U000F0083"; color = 0xFF0000; } // Пустая
+              // }
+
+              // 2. Обновляем иконку
+              lv_label_set_text(id(lbl_bat_icon), icon);
+              lv_obj_set_style_text_color(id(lbl_bat_icon), lv_color_hex(color), 0);
+
+              // 3. Обновляем текстовый процент
+              static char buf[8]; 
+              snprintf(buf, sizeof(buf), "%d%%", pct);
+              lv_label_set_text(id(lbl_bat_text), buf);
+
+              // Для отладки в консоль (потом можно удалить)
+              ESP_LOGD("battery", "Pct: %d, Icon code used: %s", pct, icon);
+          }
+          
           // Update other labels...
           if (!std::isnan(id(house_temp).state)) {
             static char buf[16]; sprintf(buf, "%.1f°", id(house_temp).state);
@@ -410,24 +444,56 @@ interval:
 
           // SOLAR PAGE
           static char sbuf[32];
-          if (!std::isnan(id(must_pv_voltage).state)) { sprintf(sbuf, "%.1fV", id(must_pv_voltage).state); lv_label_set_text(id(solar_voltage), sbuf); }
-          if (!std::isnan(id(must_grid_voltage).state)) { sprintf(sbuf, "%.1fV", id(must_grid_voltage).state); lv_label_set_text(id(solar_grid_voltage_f1), sbuf); }
-          if (!std::isnan(id(must_battery_voltage).state)) { sprintf(sbuf, "%.1fV", id(must_battery_voltage).state); lv_label_set_text(id(solar_battery_voltage), sbuf); }
-          if (!std::isnan(id(maic_v1).state)) { sprintf(sbuf, "F1: %.0fV", id(maic_v1).state); lv_label_set_text(id(power_voltage_f1), sbuf); }
-          if (!std::isnan(id(maic_v2).state)) { sprintf(sbuf, "F2: %.0fV", id(maic_v2).state); lv_label_set_text(id(power_voltage_f2), sbuf); }
-          if (!std::isnan(id(maic_v3).state)) { sprintf(sbuf, "F3: %.0fV", id(maic_v3).state); lv_label_set_text(id(power_voltage_f3), sbuf); }
-          if (!std::isnan(id(maic_p1).state)) { sprintf(sbuf, "F1: %.0fW", id(maic_p1).state); lv_label_set_text(id(power_power_f1), sbuf); }
-          if (!std::isnan(id(maic_p2).state)) { sprintf(sbuf, "F2: %.0fW", id(maic_p2).state); lv_label_set_text(id(power_power_f2), sbuf); }
-          if (!std::isnan(id(maic_p3).state)) { sprintf(sbuf, "F3: %.0fW", id(maic_p3).state); lv_label_set_text(id(power_power_f3), sbuf); }
-          if (!std::isnan(id(maic_c1).state)) { sprintf(sbuf, "F1: %.1fA", id(maic_c1).state); lv_label_set_text(id(power_current_f1), sbuf); }
-          if (!std::isnan(id(maic_c2).state)) { sprintf(sbuf, "F2: %.1fA", id(maic_c2).state); lv_label_set_text(id(power_current_f2), sbuf); }
-          if (!std::isnan(id(maic_c3).state)) { sprintf(sbuf, "F3: %.1fA", id(maic_c3).state); lv_label_set_text(id(power_current_f3), sbuf); }
-          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.0fW", id(house_total_p).state); lv_label_set_text(id(power_total_power), sbuf); }
-          if (!std::isnan(id(house_total_c).state)) { sprintf(sbuf, "%.1fA", id(house_total_c).state); lv_label_set_text(id(power_total_current), sbuf); }
+          if (!std::isnan(id(must_pv_voltage).state)) { sprintf(sbuf, "%.1f V", id(must_pv_voltage).state); lv_label_set_text(id(solar_voltage), sbuf); }
+          if (!std::isnan(id(must_grid_voltage).state)) { sprintf(sbuf, "%.0f V", id(must_grid_voltage).state); lv_label_set_text(id(solar_grid_voltage_f1), sbuf); }
+          if (!std::isnan(id(must_battery_voltage).state)) { sprintf(sbuf, "%.1f V", id(must_battery_voltage).state); lv_label_set_text(id(solar_battery_voltage), sbuf); }
+          if (!std::isnan(id(maic_v1).state)) { sprintf(sbuf, "F1: %.0f V", id(maic_v1).state); lv_label_set_text(id(power_voltage_f1), sbuf); }
+          if (!std::isnan(id(maic_v2).state)) { sprintf(sbuf, "F2: %.0f V", id(maic_v2).state); lv_label_set_text(id(power_voltage_f2), sbuf); }
+          if (!std::isnan(id(maic_v3).state)) { sprintf(sbuf, "F3: %.0f V", id(maic_v3).state); lv_label_set_text(id(power_voltage_f3), sbuf); }
+          if (!std::isnan(id(maic_p1).state)) { sprintf(sbuf, "F1: %.0f W", id(maic_p1).state); lv_label_set_text(id(power_power_f1), sbuf); }
+          if (!std::isnan(id(maic_p2).state)) { sprintf(sbuf, "F2: %.0f W", id(maic_p2).state); lv_label_set_text(id(power_power_f2), sbuf); }
+          if (!std::isnan(id(maic_p3).state)) { sprintf(sbuf, "F3: %.0f W", id(maic_p3).state); lv_label_set_text(id(power_power_f3), sbuf); }
+          if (!std::isnan(id(maic_c1).state)) { sprintf(sbuf, "F1: %.1f A", id(maic_c1).state); lv_label_set_text(id(power_current_f1), sbuf); }
+          if (!std::isnan(id(maic_c2).state)) { sprintf(sbuf, "F2: %.1f A", id(maic_c2).state); lv_label_set_text(id(power_current_f2), sbuf); }
+          if (!std::isnan(id(maic_c3).state)) { sprintf(sbuf, "F3: %.1f A", id(maic_c3).state); lv_label_set_text(id(power_current_f3), sbuf); }
+          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.1f kWh", id(house_total_p).state); lv_label_set_text(id(power_total_power), sbuf); }
+          if (!std::isnan(id(house_total_c).state)) { sprintf(sbuf, "%.1f A", id(house_total_c).state); lv_label_set_text(id(power_total_current), sbuf); }
 
           bool alarm = id(air_alarm).state;
           lv_label_set_text(id(dash_alarm_text), alarm ? "ТРИВОГА!" : "НЕБО ЧИСТЕ");
           lv_obj_set_style_bg_color(id(dash_alarm_card), lv_color_hex(alarm ? 0x60120E : 0x17320E), 0);
+
+          // Sync button states
+          if (id(display_backlight).remote_values.get_brightness() > 0.05) {
+            lv_obj_add_state(id(btn_backlight), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_backlight), LV_STATE_CHECKED);
+          }
+          if (id(switch_external_lights).state) {
+            lv_obj_add_state(id(btn_external_lights), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_external_lights), LV_STATE_CHECKED);
+          }
+          if (id(switch_kitchen_lights).state) {
+            lv_obj_add_state(id(btn_kitchen_lights), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_kitchen_lights), LV_STATE_CHECKED);
+          }
+          if (id(switch_bedroom).state) {
+            lv_obj_add_state(id(btn_bedroom), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_bedroom), LV_STATE_CHECKED);
+          }
+          if (id(switch_bathroom).state) {
+            lv_obj_add_state(id(btn_bathroom), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_bathroom), LV_STATE_CHECKED);
+          }
+          if (id(switch_hall).state) {
+            lv_obj_add_state(id(btn_hall), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_hall), LV_STATE_CHECKED);
+          }
 
 button:
   - platform: restart

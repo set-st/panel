@@ -18,7 +18,7 @@ widgets:
             styles: group_style
             layout: { type: flex, flex_flow: COLUMN } # Для слайдера с подписью лучше COLUMN
             widgets:  
-              - label: { text: "Яскравість дисплея", text_font: roboto_14, text_color: 0xAAAAAA }
+              - label: { id: dimmer_label, text: "Яскравість дисплея: 0%", text_font: roboto_14, text_color: 0xAAAAAA}
               - slider:
                   id: dimmer_slider
                   width: 100% # 100% или 90% лучше для адаптивности
@@ -43,6 +43,9 @@ widgets:
                             call.set_brightness(val);
                             call.perform();
                           }
+                          static char tbuf[64];
+                          snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)x);
+                          lv_label_set_text(id(dimmer_label), tbuf);
               - label: { id: timeout_label, text: "Таймаут сну: 60 сек", text_font: roboto_14, text_color: 0xAAAAAA }
               - slider:
                   id: timeout_slider
