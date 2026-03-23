@@ -3,7 +3,6 @@ id: page_settings
 widgets:
   - obj:
       width: 100%
-      bg_opa: TRANSP
       styles: page_bg_style
       pad_all: 15
       layout: { type: flex, flex_flow: COLUMN }
@@ -37,15 +36,20 @@ widgets:
                     then:
                       - lambda: |-
                           float val = x / 100.0;
-                          id(current_brightness) = val; // Запоминаем
-                          if (id(idle_counter) > 0) {   // Если не в режиме сна, сразу применяем
-                            auto call = id(display_backlight).make_call();
-                            call.set_brightness(val);
-                            call.perform();
+                          // Обновляем только если значение реально изменилось
+                          if (abs(id(current_brightness) - val) > 0.01) {
+                            id(current_brightness) = val;
+                            
+                            if (id(idle_counter) > 0) {
+                              auto call = id(display_backlight).make_call();
+                              call.set_brightness(val);
+                              call.perform();
+                            }
+                            
+                            static char tbuf[32];
+                            snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)x);
+                            lv_label_set_text(id(dimmer_label), tbuf);
                           }
-                          static char tbuf[64];
-                          snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)x);
-                          lv_label_set_text(id(dimmer_label), tbuf);
               - label: { id: timeout_label, text: "Таймаут сну: 60 сек", text_font: roboto_14, text_color: 0xAAAAAA }
               - slider:
                   id: timeout_slider

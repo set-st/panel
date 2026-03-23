@@ -172,10 +172,21 @@ interval:
           auto now = id(sntp_time).now();
           if (now.is_valid()) {
             lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
+            lv_label_set_text(id(big_watch_label), now.strftime("%H : %M").c_str());
             lv_label_set_text(id(top_date_label), now.strftime("%d.%m.%Y").c_str());
+            lv_label_set_text(id(big_date_label), now.strftime("%d.%m.%Y").c_str());
           }
+
           lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(0x00FF00), 0);
           
+          bool alarm = id(air_alarm).state;
+          lv_label_set_text(id(dash_alarm_text), alarm ? "ТРИВОГА!" : "НЕБО ЧИСТЕ");
+          lv_obj_set_style_bg_color(id(dash_alarm_card), lv_color_hex(alarm ? 0x60120E : 0x17320E), 0);
+
+          if (id(page_watch).is_showing()) {
+            lv_obj_set_style_bg_color(id(watch_container), lv_color_hex(alarm ? 0x60120E : 0x0B1114), 0);
+          }
+
           if (!std::isnan(id(internal_bat_pct).state)) {
               int pct = (int)id(internal_bat_pct).state;
               const char* icon = (pct >= 90) ? "\U000F007E" : (pct >= 70) ? "\U000F0081" : (pct >= 50) ? "\U000F007F" : (pct >= 30) ? "\U000F007D" : (pct >= 10) ? "\U000F007B" : "\U000F0083";

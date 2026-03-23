@@ -345,12 +345,34 @@ interval:
   - interval: 1s
     then:
       - lambda: |-
-          /* // Boot logic ... */
+          // Проверяем, выполнена ли начальная синхронизация GUI
+          static bool gui_synced = false;
+          if (!gui_synced && id(boot_completed)) {
+              float saved_br = id(current_brightness);
+              
+              // 1. Устанавливаем положение ползунка (0-100)
+              lv_slider_set_value(id(dimmer_slider), (int)(saved_br * 100), LV_ANIM_OFF);
+              
+              // 2. Обновляем текст метки
+              static char tbuf[32];
+              snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)(saved_br * 100));
+              lv_label_set_text(id(dimmer_label), tbuf);
+              
+              // 3. Применяем яркость к подсветке физически
+              auto call = id(display_backlight).make_call();
+              call.set_brightness(saved_br);
+              call.perform();
+
+              gui_synced = true;
+              ESP_LOGD("main", "GUI Brightness Synced: %.2f", saved_br);
+          }
 
           auto now = id(sntp_time).now();
           if (now.is_valid()) {
             lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
+            lv_label_set_text(id(big_watch_label), now.strftime("%H : %M").c_str());
             lv_label_set_text(id(top_date_label), now.strftime("%d.%m.%Y").c_str());
+            lv_label_set_text(id(big_date_label), now.strftime("%d.%m.%Y").c_str());
           }
 
           if (id(idle_counter) > 0) {
@@ -462,6 +484,10 @@ interval:
           bool alarm = id(air_alarm).state;
           lv_label_set_text(id(dash_alarm_text), alarm ? "ТРИВОГА!" : "НЕБО ЧИСТЕ");
           lv_obj_set_style_bg_color(id(dash_alarm_card), lv_color_hex(alarm ? 0x60120E : 0x17320E), 0);
+
+          if (id(page_watch).is_showing()) {
+            lv_obj_set_style_bg_color(id(watch_container), lv_color_hex(alarm ? 0x60120E : 0x0B1114), 0);
+          }
 
           // Sync button states
           if (id(display_backlight).remote_values.get_brightness() > 0.05) {

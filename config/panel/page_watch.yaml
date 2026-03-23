@@ -1,0 +1,18 @@
+# config/panel/page_watch.yaml
+id: page_watch
+widgets:
+  - obj:
+      width: 100%
+      id: watch_container
+      styles: page_bg_style
+      pad_all: 15
+      layout: { type: flex, flex_flow: COLUMN }
+      widgets:
+        - obj:
+            width: 100%
+            height: 100%
+            bg_opa: TRANSP
+            border_width: 0
+            widgets:
+              - label: { id: big_watch_label, text: "-- : --", text_font: roboto_260, align: CENTER, text_color: 0xAAAAAA }
+              - label: { id: big_date_label, text: "--.--.----", text_font: roboto_60, align: CENTER, text_color: 0xAAAAAA, y: 180 }

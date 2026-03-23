@@ -126,6 +126,7 @@ lvgl:
 
   pages:
     # - !include config/panel/page_boot.yaml
+    - !include config/panel/page_watch.yaml
     - !include config/panel/page_dash.yaml
     - !include config/panel/page_lights.yaml
     - !include config/panel/page_temp.yaml

@@ -16,6 +16,10 @@ font:
     id: roboto_60
     size: 60
     bpp: 2
+  - file: "gfonts://Roboto"
+    id: roboto_260
+    size: 260
+    bpp: 2
   - file: "font/materialdesignicons-webfont.ttf"
     id: mdi_20
     size: 20

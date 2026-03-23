@@ -3,7 +3,6 @@ id: page_dash
 widgets:
   - obj:
       width: 100%
-      bg_opa: TRANSP
       styles: page_bg_style
       pad_all: 15
       layout: { type: flex, flex_flow: COLUMN }
