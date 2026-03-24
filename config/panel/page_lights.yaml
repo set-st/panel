@@ -16,7 +16,7 @@ widgets:
             layout: { type: flex, flex_flow: ROW }
             widgets:
               - button:
-                  styles: button_style
+                  styles: button_small_style
                   checkable: true
                   id: btn_backlight
                   widgets:

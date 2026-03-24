@@ -114,11 +114,11 @@ widgets:
                           - label: { text: "REBOOT", align: CENTER }
                         on_click: 
                           then: 
-                            - lambda: "id(reboot_btn).press();" # Убедись, что reboot_btn существует
+                            - lambda: "id(reboot_btn).press();"
                     - checkbox:
                         id: cycle_checkbox
                         text_font: roboto_14
-                        text: "Циклична зміна сторінок"
+                        text: "Циклична зміна сторінок (60s)"
                         state:
                           checked: !lambda "return id(screen_cycling_enabled);"
                         on_click:

@@ -9,9 +9,9 @@ lvgl:
 
   theme:
     button:
-      bg_color: 0x0B1114
+      bg_color: 0x212121
       text_color: 0xFFFFFF
-      border_width: 0
+      border_width: 2
       outline_width: 0
       shadow_width: 0
       checked:
@@ -62,6 +62,16 @@ lvgl:
     - id: button_style
       width: 180
       height: 120
+      bg_color: 0x0B1114
+      bg_opa: cover
+      border_color: 0x1A1D23
+      radius: 10
+      text_font: roboto_22
+      scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+    - id: button_small_style
+      width: 180
+      height: 90
       bg_color: 0x0B1114
       bg_opa: cover
       border_color: 0x1A1D23
