@@ -10,6 +10,9 @@ esphome:
       - light.turn_on:
           id: display_backlight
           brightness: !lambda "return id(current_brightness);"
+      - globals.set:
+          id: boot_completed
+          value: 'true'
 
 http_request:
   verify_ssl: false

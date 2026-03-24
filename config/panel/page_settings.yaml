@@ -24,7 +24,7 @@ widgets:
                   height: 40
                   min_value: 8
                   max_value: 100
-                  value: !lambda "return id(current_brightness);"
+                  value: !lambda "return (int)(id(current_brightness) * 100);"
                   indicator:
                     bg_color: 0x1E758D
                   knob:
