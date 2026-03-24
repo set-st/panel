@@ -5,8 +5,25 @@ esphome:
     board_build.flash_mode: dio
     board_build.partitions: partitions.csv
   on_boot:
-    priority: -100
+    priority: 600 
     then:
+      - lambda: |-
+          ESP_LOGI("main", "Performing hard reset of GT911 Touchscreen...");
+          
+          // ESP-IDF way to configure GPIO4 (Touch INT)
+          gpio_config_t io_conf;
+          io_conf.intr_type = GPIO_INTR_DISABLE;
+          io_conf.mode = GPIO_MODE_OUTPUT;
+          io_conf.pin_bit_mask = (1ULL << 4);
+          io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+          io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+          gpio_config(&io_conf);
+          
+          gpio_set_level(GPIO_NUM_4, 0); // INT LOW
+          
+          vTaskDelay(pdMS_TO_TICKS(50)); 
+          
+          ESP_LOGI("main", "GT911 Reset sequence completed.");
       - light.turn_on:
           id: display_backlight
           brightness: !lambda "return id(current_brightness);"
@@ -180,12 +197,37 @@ sensor:
   - platform: homeassistant
     id: maic_c3
     entity_id: sensor.maic_current_3
-  - platform: homeassistant
+  - platform: template
     id: house_total_p
-    entity_id: sensor.house_consumption_in_w_kwh_total
-  - platform: homeassistant
+    name: "House Total Power"
+    unit_of_measurement: "W"
+    accuracy_decimals: 1
+    lambda: |-
+      float p1 = id(maic_p1).state;
+      float p2 = id(maic_p2).state;
+      float p3 = id(maic_p3).state;
+      float total = 0;
+      if (!std::isnan(p1)) total += p1;
+      if (!std::isnan(p2)) total += p2;
+      if (!std::isnan(p3)) total += p3;
+      return total;
+    update_interval: 1s
+
+  - platform: template
     id: house_total_c
-    entity_id: sensor.house_consumption_in_a_total
+    name: "House Total Current"
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    lambda: |-
+      float c1 = id(maic_c1).state;
+      float c2 = id(maic_c2).state;
+      float c3 = id(maic_c3).state;
+      float total = 0;
+      if (!std::isnan(c1)) total += c1;
+      if (!std::isnan(c2)) total += c2;
+      if (!std::isnan(c3)) total += c3;
+      return total;
+    update_interval: 1s
 
   - platform: wifi_signal
     id: wifi_rssi
@@ -484,7 +526,7 @@ interval:
           if (!std::isnan(id(maic_c1).state)) { sprintf(sbuf, "F1: %.1f A", id(maic_c1).state); lv_label_set_text(id(power_current_f1), sbuf); }
           if (!std::isnan(id(maic_c2).state)) { sprintf(sbuf, "F2: %.1f A", id(maic_c2).state); lv_label_set_text(id(power_current_f2), sbuf); }
           if (!std::isnan(id(maic_c3).state)) { sprintf(sbuf, "F3: %.1f A", id(maic_c3).state); lv_label_set_text(id(power_current_f3), sbuf); }
-          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.1f kWh", id(house_total_p).state); lv_label_set_text(id(power_total_power), sbuf); }
+          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.2f kW", id(house_total_p).state / 1000.0); lv_label_set_text(id(power_total_power), sbuf); }
           if (!std::isnan(id(house_total_c).state)) { sprintf(sbuf, "%.1f A", id(house_total_c).state); lv_label_set_text(id(power_total_current), sbuf); }
 
           bool alarm = id(air_alarm).state;

@@ -102,10 +102,26 @@ sensor:
     lambda: "return 5.4;"
   - platform: template
     id: house_total_p
-    lambda: "return 2000.0;"
+    lambda: |-
+      float p1 = id(maic_p1).state;
+      float p2 = id(maic_p2).state;
+      float p3 = id(maic_p3).state;
+      float total = 0;
+      if (!std::isnan(p1)) total += p1;
+      if (!std::isnan(p2)) total += p2;
+      if (!std::isnan(p3)) total += p3;
+      return total;
   - platform: template
     id: house_total_c
-    lambda: "return 8.9;"
+    lambda: |-
+      float c1 = id(maic_c1).state;
+      float c2 = id(maic_c2).state;
+      float c3 = id(maic_c3).state;
+      float total = 0;
+      if (!std::isnan(c1)) total += c1;
+      if (!std::isnan(c2)) total += c2;
+      if (!std::isnan(c3)) total += c3;
+      return total;
   - platform: template
     id: must_pv_voltage
     lambda: "return 150.0;"
@@ -166,9 +182,37 @@ time:
 
 # Логика обновления для симулятора
 interval:
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            lambda: 'return id(screen_cycling_enabled) && id(idle_counter) == 0;'
+          then:
+            lvgl.page.next:
   - interval: 1s
     then:
       - lambda: |-
+          // Проверяем, выполнена ли начальная синхронизация GUI
+          static bool gui_synced = false;
+          if (!gui_synced && id(boot_completed)) {
+              float saved_br = id(current_brightness);
+              
+              // 1. Устанавливаем положение ползунка (0-100)
+              lv_slider_set_value(id(dimmer_slider), (int)(saved_br * 100), LV_ANIM_OFF);
+              
+              // 2. Обновляем текст метки
+              static char tbuf[32];
+              snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)(saved_br * 100));
+              lv_label_set_text(id(dimmer_label), tbuf);
+              
+              // 3. Применяем яркость к подсветке физически
+              auto call = id(display_backlight).make_call();
+              call.set_brightness(saved_br);
+              call.perform();
+
+              gui_synced = true;
+          }
+
           auto now = id(sntp_time).now();
           if (now.is_valid()) {
             lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
@@ -177,8 +221,99 @@ interval:
             lv_label_set_text(id(big_date_label), now.strftime("%d.%m.%Y").c_str());
           }
 
-          lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(0x00FF00), 0);
+          if (id(idle_counter) > 0) {
+            id(idle_counter)--;
+            if (id(idle_counter) == 0) {
+              id(display_backlight).make_call().set_brightness(0.03).perform();
+            }
+          }
+
+          // Mock HA status for simulator
+          bool ha_ok = true; 
+          lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(ha_ok ? 0x00FF00 : 0xFF0000), 0);
+
+          if (id(wifi_rssi).has_state() && !std::isnan(id(wifi_rssi).state)) {
+              float rssi = id(wifi_rssi).state;
+              int level = (rssi >= -55.0) ? 4 : (rssi >= -65.0) ? 3 : (rssi >= -75.0) ? 2 : (rssi >= -85.0) ? 1 : 0;
+              const char* icons[] = {"\U0000E934", "\U0000E931", "\U0000E932", "\U0000E933", "\U0000E934"};
+              lv_label_set_text(id(lbl_wifi_signal), icons[level]);
+              static char t_buf[32];
+              sprintf(t_buf, "WiFi: %.1f dBm (%d)", rssi, level);
+              lv_label_set_text(id(sys_wifi_label), t_buf);
+          }
+
+          if (!std::isnan(id(house_temp).state)) {
+            static char t_buf[16];
+            sprintf(t_buf, "%.1f°C", id(house_temp).state);
+            lv_label_set_text(id(lbl_top_temp), t_buf);
+          }
+
+          if (!std::isnan(id(internal_bat_pct).state)) {
+              int pct = (int)id(internal_bat_pct).state;
+              const char* icon = "\U000F0083";
+              uint32_t color = 0xFF0000;
+              if (pct >= 95)      { icon = "\U000F0079"; color = 0x00FF00; }
+              else if (pct >= 80) { icon = "\U000F0082"; color = 0x00FF00; }
+              else if (pct >= 65) { icon = "\U000F0080"; color = 0x00FF00; }
+              else if (pct >= 45) { icon = "\U000F007E"; color = 0xFFFF00; }
+              else if (pct >= 25) { icon = "\U000F007C"; color = 0xFFFF00; }
+              else if (pct >= 10) { icon = "\U000F007A"; color = 0xFF0000; }
+              else                { icon = "\U000F0083"; color = 0xFF0000; }
+
+              lv_label_set_text(id(lbl_bat_icon), icon);
+              lv_obj_set_style_text_color(id(lbl_bat_icon), lv_color_hex(color), 0);
+              static char buf[8]; 
+              snprintf(buf, sizeof(buf), "%d%%", pct);
+              lv_label_set_text(id(lbl_bat_text), buf);
+          }
           
+          if (!std::isnan(id(house_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(house_temp).state);
+            lv_label_set_text(id(dash_temp_label), buf);
+            lv_label_set_text(id(temp_hall_label), buf);
+          }
+          if (!std::isnan(id(floor_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(floor_temp).state);
+            lv_label_set_text(id(second_floor_temp_label), buf);
+            lv_label_set_text(id(second_floor_temp_label2), buf);
+          }
+          if (!std::isnan(id(bedroom_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(bedroom_temp).state);
+            lv_label_set_text(id(temp_bedroom_label), buf);
+          }
+          if (!std::isnan(id(techroom_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(techroom_temp).state);
+            lv_label_set_text(id(temp_techroom_label), buf);
+          }
+          if (!std::isnan(id(outside_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(outside_temp).state);
+            lv_label_set_text(id(dash_outside_temp_label), buf);
+          }
+          if (!std::isnan(id(kitchen_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(kitchen_temp).state);
+            lv_label_set_text(id(temp_kitchen_label), buf);
+          }
+          if (!std::isnan(id(bathroom_temp).state)) {
+            static char buf[16]; sprintf(buf, "%.1f°", id(bathroom_temp).state);
+            lv_label_set_text(id(temp_bathroom_label), buf);
+          }
+
+          static char sbuf[32];
+          if (!std::isnan(id(must_pv_voltage).state)) { sprintf(sbuf, "%.1f V", id(must_pv_voltage).state); lv_label_set_text(id(solar_voltage), sbuf); }
+          if (!std::isnan(id(must_grid_voltage).state)) { sprintf(sbuf, "%.0f V", id(must_grid_voltage).state); lv_label_set_text(id(solar_grid_voltage_f1), sbuf); }
+          if (!std::isnan(id(must_battery_voltage).state)) { sprintf(sbuf, "%.1f V", id(must_battery_voltage).state); lv_label_set_text(id(solar_battery_voltage), sbuf); }
+          if (!std::isnan(id(maic_v1).state)) { sprintf(sbuf, "F1: %.0f V", id(maic_v1).state); lv_label_set_text(id(power_voltage_f1), sbuf); }
+          if (!std::isnan(id(maic_v2).state)) { sprintf(sbuf, "F2: %.0f V", id(maic_v2).state); lv_label_set_text(id(power_voltage_f2), sbuf); }
+          if (!std::isnan(id(maic_v3).state)) { sprintf(sbuf, "F3: %.0f V", id(maic_v3).state); lv_label_set_text(id(power_voltage_f3), sbuf); }
+          if (!std::isnan(id(maic_p1).state)) { sprintf(sbuf, "F1: %.0f W", id(maic_p1).state); lv_label_set_text(id(power_power_f1), sbuf); }
+          if (!std::isnan(id(maic_p2).state)) { sprintf(sbuf, "F2: %.0f W", id(maic_p2).state); lv_label_set_text(id(power_power_f2), sbuf); }
+          if (!std::isnan(id(maic_p3).state)) { sprintf(sbuf, "F3: %.0f W", id(maic_p3).state); lv_label_set_text(id(power_power_f3), sbuf); }
+          if (!std::isnan(id(maic_c1).state)) { sprintf(sbuf, "F1: %.1f A", id(maic_c1).state); lv_label_set_text(id(power_current_f1), sbuf); }
+          if (!std::isnan(id(maic_c2).state)) { sprintf(sbuf, "F2: %.1f A", id(maic_c2).state); lv_label_set_text(id(power_current_f2), sbuf); }
+          if (!std::isnan(id(maic_c3).state)) { sprintf(sbuf, "F3: %.1f A", id(maic_c3).state); lv_label_set_text(id(power_current_f3), sbuf); }
+          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.2f kW", id(house_total_p).state / 1000.0); lv_label_set_text(id(power_total_power), sbuf); }
+          if (!std::isnan(id(house_total_c).state)) { sprintf(sbuf, "%.1f A", id(house_total_c).state); lv_label_set_text(id(power_total_current), sbuf); }
+
           bool alarm = id(air_alarm).state;
           lv_label_set_text(id(dash_alarm_text), alarm ? "ТРИВОГА!" : "НЕБО ЧИСТЕ");
           lv_obj_set_style_bg_color(id(dash_alarm_card), lv_color_hex(alarm ? 0x60120E : 0x17320E), 0);
@@ -187,17 +322,36 @@ interval:
             lv_obj_set_style_bg_color(id(watch_container), lv_color_hex(alarm ? 0x60120E : 0x0B1114), 0);
           }
 
-          if (!std::isnan(id(internal_bat_pct).state)) {
-              int pct = (int)id(internal_bat_pct).state;
-              const char* icon = (pct >= 90) ? "\U000F007E" : (pct >= 70) ? "\U000F0081" : (pct >= 50) ? "\U000F007F" : (pct >= 30) ? "\U000F007D" : (pct >= 10) ? "\U000F007B" : "\U000F0083";
-              lv_label_set_text(id(lbl_bat_icon), icon);
-              static char b_buf[8];
-              sprintf(b_buf, "%d%%", pct);
-              lv_label_set_text(id(lbl_bat_text), b_buf);
+          lv_label_set_text(id(sys_ip_label), ("IP: " + id(wifi_ip_address).state).c_str());
+
+          // Sync button states
+          if (id(display_backlight).remote_values.get_brightness() > 0.05) {
+            lv_obj_add_state(id(btn_backlight), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_backlight), LV_STATE_CHECKED);
           }
-          
-          if (!std::isnan(id(house_temp).state)) {
-            static char t_buf[16];
-            sprintf(t_buf, "%.1f°C", id(house_temp).state);
-            lv_label_set_text(id(lbl_top_temp), t_buf);
+          if (id(switch_external_lights).state) {
+            lv_obj_add_state(id(btn_external_lights), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_external_lights), LV_STATE_CHECKED);
+          }
+          if (id(switch_kitchen_lights).state) {
+            lv_obj_add_state(id(btn_kitchen_lights), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_kitchen_lights), LV_STATE_CHECKED);
+          }
+          if (id(switch_bedroom).state) {
+            lv_obj_add_state(id(btn_bedroom), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_bedroom), LV_STATE_CHECKED);
+          }
+          if (id(switch_bathroom).state) {
+            lv_obj_add_state(id(btn_bathroom), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_bathroom), LV_STATE_CHECKED);
+          }
+          if (id(switch_hall).state) {
+            lv_obj_add_state(id(btn_hall), LV_STATE_CHECKED);
+          } else {
+            lv_obj_clear_state(id(btn_hall), LV_STATE_CHECKED);
           }
