@@ -409,7 +409,7 @@ interval:
               call.perform();
 
               gui_synced = true;
-              ESP_LOGD("main", "GUI Brightness Synced: %.2f", saved_br);
+              //ESP_LOGD("main", "GUI Brightness Synced: %.2f", saved_br);
           }
 
           auto now = id(sntp_time).now();
@@ -477,7 +477,7 @@ interval:
               lv_label_set_text(id(lbl_bat_text), buf);
 
               // Для отладки в консоль (потом можно удалить)
-              ESP_LOGD("battery", "Pct: %d, Icon code used: %s", pct, icon);
+              //ESP_LOGD("battery", "Pct: %d, Icon code used: %s", pct, icon);
           }
           
           // Update other labels...
