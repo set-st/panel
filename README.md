@@ -2,7 +2,7 @@
 
 An intelligent smart home control panel based on **ESPHome** and **LVGL**. This project is optimized for the 7-inch high-definition touchscreen, providing a smooth user interface and deep integration with Home Assistant.
 
-![Waveshare ESP32-S3-Touch-LCD-7](https://www.waveshare.com/w/upload/thumb/5/52/ESP32-S3-Touch-LCD-7_details_1.jpg/600px-ESP32-S3-Touch-LCD-7_details_1.jpg)
+![Smart Home Control Panel](esp32-s3-touch-lcd-7b.jpg)
 
 ## 🛠 Technical Specifications
 
