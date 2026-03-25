@@ -20,7 +20,7 @@ widgets:
                   checkable: true
                   id: btn_backlight
                   widgets:
-                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Підсвітка панелі", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:
@@ -38,7 +38,7 @@ widgets:
                   checkable: true
                   id: btn_kitchen_lights
                   widgets:
-                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Кухня", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:
@@ -48,7 +48,7 @@ widgets:
                   checkable: true
                   id: btn_external_lights
                   widgets:
-                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Підсвітка будинку", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:
@@ -58,7 +58,7 @@ widgets:
                   checkable: true
                   id: btn_bedroom
                   widgets:
-                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Спальня", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:
@@ -68,7 +68,7 @@ widgets:
                   checkable: true
                   id: btn_bathroom
                   widgets:
-                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Ванна", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:
@@ -78,7 +78,7 @@ widgets:
                   checkable: true
                   id: btn_hall
                   widgets:
-                    - label: { text: "\U000F032B", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Передпокій", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:

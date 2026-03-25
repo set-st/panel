@@ -113,12 +113,12 @@ widgets:
                         call.set_brightness(0.03); // Мінімальна яскравість (нічний режим)
                         call.perform();
               - id: page_dash_sw
-                text: "\U000F07D0"
+                text: "\U000F12A9"
                 on_press:
                   then:
                     lvgl.page.show: page_dash
               - id: page_lights_sw
-                text: "\U000F032B"
+                text: "\U000F1802"
                 on_press:
                   then:
                     lvgl.page.show: page_lights
@@ -128,7 +128,7 @@ widgets:
                   then:
                     lvgl.page.show: page_temp
               - id: page_solar_sw
-                text: "\U000F010C"
+                text: "\U000F1903"
                 on_press:
                   then:
                     lvgl.page.show: page_solar

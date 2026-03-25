@@ -112,6 +112,10 @@ font:
         "\U000F0043", # calendar
         "\U000F009A", # bell
         "\U000F0243", # flash - power
+        "\U000F1802", # light bulb
+        "\U000F1903", # home lighting
+        "\U000F12A9", # tap
+        "\U000F192C", # grid in
       ]
   - file: "font/icons_v2.ttf"
     id: icons_20

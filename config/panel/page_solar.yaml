@@ -18,13 +18,13 @@ widgets:
               - obj:
                   styles: card_style
                   widgets:
-                    - label: { text: "\U000F0410", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "\U000F0599", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
                     - label: { text: "Вольтаж панелей", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
                     - label: { id: solar_voltage, text: "0 V", align: BOTTOM_LEFT, x: 15, y: -15 }
               - obj:
                   styles: card_style
                   widgets:
-                    - label: { text: "\U000F0410", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "\U000F192C", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
                     - label: { text: "Вольтаж мережі F1", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
                     - label: { id: solar_grid_voltage_f1, text: "0 V", align: BOTTOM_LEFT, x: 15, y: -15 }
               - obj:
@@ -46,7 +46,7 @@ widgets:
               - obj:
                   styles: card_style_triple
                   widgets:
-                    - label: { text: "\U000F07D0", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "\U000F192C", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
                     - label: { text: "Вольтаж фаз", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
                     - label: { id: power_voltage_f1, text: "F1: 0 V", align: BOTTOM_LEFT, x: 15, y: -62 }
                     - label: { id: power_voltage_f2, text: "F2: 0 V", align: BOTTOM_LEFT, x: 15, y: -38 }
@@ -54,7 +54,7 @@ widgets:
               - obj:
                   styles: card_style_triple
                   widgets:
-                    - label: { text: "\U000F07D0", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "\U000F192C", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
                     - label: { text: "Потужність фаз", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
                     - label: { id: power_power_f1, text: "F1: 0 W", align: BOTTOM_LEFT, x: 15, y: -62 }
                     - label: { id: power_power_f2, text: "F2: 0 W", align: BOTTOM_LEFT, x: 15, y: -38 }
@@ -62,7 +62,7 @@ widgets:
               - obj:
                   styles: card_style_triple
                   widgets:
-                    - label: { text: "\U000F07D0", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
+                    - label: { text: "\U000F192C", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
                     - label: { text: "Ток мережі", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
                     - label: { id: power_current_f1, text: "F1: 0 A", align: BOTTOM_LEFT, x: 15, y: -62 }
                     - label: { id: power_current_f2, text: "F2: 0 A", align: BOTTOM_LEFT, x: 15, y: -38 }

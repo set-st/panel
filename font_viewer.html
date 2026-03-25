@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cканер гліфів</title>
+    <style>
+        /* Підключаємо шрифти з відносними шляхами */
+        @font-face { font-family: 'MDI'; src: url('font/materialdesignicons-webfont.ttf') format('truetype'); }
+        @font-face { font-family: 'IconsV2'; src: url('font/icons_v2.ttf') format('truetype'); }
+        
+        body { font-family: system-ui, sans-serif; background: #0b1114; color: #e1e2e5; padding: 20px; }
+        h1 { color: #00ff00; border-bottom: 1px solid #1a1d23; padding-bottom: 10px; font-weight: 300; }
+        
+        .status-panel { 
+            background: #1a1d23; border: 1px solid #2c2c2e; padding: 20px; border-radius: 12px; 
+            margin-bottom: 30px;
+        }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+        .card { 
+            background: #1a1d23; border-radius: 8px; padding: 15px; text-align: center; 
+            border: 1px solid #2c2c2e; cursor: pointer; transition: 0.2s;
+        }
+        .card:hover { border-color: #00ff00; background: #212121; transform: translateY(-2px); }
+        
+        .icon { font-size: 42px; display: block; margin-bottom: 10px; color: #fff; }
+        .MDI-font { font-family: 'MDI', monospace; }
+        .IconsV2-font { font-family: 'IconsV2', monospace; }
+        
+        .code { font-family: monospace; font-size: 11px; color: #888; display: block; }
+        
+        button { 
+            background: #00ff00; color: #000; border: none; padding: 15px 30px; 
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;
+        }
+        button:disabled { background: #333; color: #666; cursor: wait; }
+        
+        #progress { margin-top: 10px; color: #00ff00; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Бібліотека активних гліфів</h1>
+    
+    <div class="status-panel">
+        <div id="status-text" style="margin-bottom: 20px;">Підготовка...</div>
+        <button id="start-btn" disabled>ЗАЧЕКАЙТЕ (3 сек)...</button>
+        <div id="progress"></div>
+    </div>
+
+    <div id="results" style="display:none;">
+        <h2 id="h2-v2" style="display:none;">Custom Icons (IconsV2)</h2>
+        <div class="grid" id="v2-grid"></div>
+        <h2 id="h2-mdi" style="display:none;">Material Design Icons (MDI)</h2>
+        <div class="grid" id="mdi-grid"></div>
+    </div>
+
+    <script>
+        const canvas = document.createElement('canvas');
+        const size = 50;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // Отримує хеш зображення символу в конкретному шрифті
+        function getHash(char, font) {
+            ctx.clearRect(0, 0, size, size);
+            ctx.fillStyle = "white";
+            ctx.font = `30px ${font}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(char, size/2, size/2);
+            
+            const data = ctx.getImageData(0, 0, size, size).data;
+            let sum = 0;
+            for (let i = 3; i < data.length; i += 4) sum += data[i];
+            return sum === 0 ? "blank" : sum;
+        }
+
+        async function scan(gridId, fontClass, start, end) {
+            const grid = document.getElementById(gridId);
+            const progress = document.getElementById('progress');
+            let found = 0;
+
+            for (let i = start; i <= end; i++) {
+                const char = String.fromCodePoint(i);
+                // КЛЮЧОВИЙ МОМЕНТ: порівнюємо ваш шрифт із системним monospace
+                // Якщо результати однакові - значить ваш шрифт НЕ ПРИКЛАВСЯ (гліфа немає)
+                const targetHash = getHash(char, fontClass);
+                const fallbackHash = getHash(char, "monospace");
+
+                if (targetHash !== "blank" && targetHash !== fallbackHash) {
+                    const hex = i.toString(16).toUpperCase().padStart(4, '0');
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `<span class="icon ${fontClass}-font">${char}</span><span class="code">\\U${hex.padStart(8, '0')}</span>`;
+                    card.onclick = () => {
+                        let textToCopy = `\\U${hex.padStart(8, '0')}`;
+                        navigator.clipboard.writeText(textToCopy);
+                        card.style.borderColor = "#00ff00";
+                        alert(`Скопійовано: ${textToCopy}`);
+                        setTimeout(() => card.style.borderColor = "#2c2c2e", 500);
+                    };
+                    grid.appendChild(card);
+                    found++;
+                }
+
+                if (i % 500 === 0) {
+                    progress.innerText = `Аналіз ${fontClass}: ${((i-start)/(end-start)*100).toFixed(0)}%`;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+            return found;
+        }
+
+        // Даємо браузеру час завантажити файли
+        let timer = 3;
+        const btn = document.getElementById('start-btn');
+        const countdown = setInterval(() => {
+            timer--;
+            if (timer <= 0) {
+                clearInterval(countdown);
+                btn.disabled = false;
+                btn.innerText = "ПОЧАТИ СКАНУВАННЯ";
+                document.getElementById('status-text').innerText = "Шрифти готові до аналізу.";
+            } else {
+                btn.innerText = `ЗАЧЕКАЙТЕ (${timer} сек)...`;
+            }
+        }, 1000);
+
+        btn.onclick = async () => {
+            btn.style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('h2-v2').style.display = 'block';
+            document.getElementById('h2-mdi').style.display = 'block';
+
+            const v2 = await scan('v2-grid', 'IconsV2', 0xE000, 0xF8FF);
+            const mdi = await scan('mdi-grid', 'MDI', 0xF0000, 0xF1FFF);
+
+            document.getElementById('progress').innerText = `Готово! Знайдено: V2=${v2}, MDI=${mdi}`;
+        };
+    </script>
+</body>
+</html>
