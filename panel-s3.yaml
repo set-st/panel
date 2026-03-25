@@ -399,7 +399,7 @@ interval:
               lv_slider_set_value(id(dimmer_slider), (int)(saved_br * 100), LV_ANIM_OFF);
               
               // 2. Обновляем текст метки
-              static char tbuf[32];
+              static char tbuf[64];
               snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)(saved_br * 100));
               lv_label_set_text(id(dimmer_label), tbuf);
               
@@ -410,6 +410,34 @@ interval:
 
               gui_synced = true;
               //ESP_LOGD("main", "GUI Brightness Synced: %.2f", saved_br);
+          }
+
+          // Синхронізація активної кнопки у футері
+          static bool nav_init = false;
+          if (!nav_init && id(top_bar_footer) != nullptr) {
+              for (int i = 0; i < 6; i++) {
+                  lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKABLE);
+              }
+              lv_btnmatrix_set_one_checked(id(top_bar_footer)->obj, true);
+              nav_init = true;
+          }
+
+          int active_page_idx = -1;
+          if (id(page_watch).is_showing()) active_page_idx = 0;
+          else if (id(page_dash).is_showing()) active_page_idx = 1;
+          else if (id(page_lights).is_showing()) active_page_idx = 2;
+          else if (id(page_temp).is_showing()) active_page_idx = 3;
+          else if (id(page_solar).is_showing()) active_page_idx = 4;
+          else if (id(page_settings).is_showing()) active_page_idx = 5;
+
+          if (active_page_idx != -1 && id(top_bar_footer) != nullptr) {
+              for (int i = 0; i < 6; i++) {
+                  if (i == active_page_idx) {
+                      lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKED);
+                  } else {
+                      lv_btnmatrix_clear_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKED);
+                  }
+              }
           }
 
           auto now = id(sntp_time).now();

@@ -104,8 +104,13 @@ lvgl:
       outline_width: 0
       shadow_width: 0
       height: 100%
-      radius: 10
+      radius: 0
+      text_font: mdi_20
       scrollbar_mode: "OFF"
+      text_color: 0xFFFFFF
+      border_side: TOP
+    - id: nav_btn_style
+      text_font: mdi_20
       text_color: 0xFFFFFF
     - id: slider_style
       bg_color: "0xAFC1D0"

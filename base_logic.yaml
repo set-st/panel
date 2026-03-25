@@ -106,7 +106,12 @@ font:
         "\U000F0598", # WEATHER-STORMY
         "\U000F0592", # WEATHER-HAIL
         "\U000F0594", # WEATHER-NIGHT
-        "\U000F0190"  # CPU-64-BIT
+        "\U000F0190", # CPU-64-BIT
+        "\U000F0143", # chevron-up
+        "\U000F0140", # chevron-down
+        "\U000F0043", # calendar
+        "\U000F009A", # bell
+        "\U000F0243", # flash - power
       ]
   - file: "font/icons_v2.ttf"
     id: icons_20

@@ -95,20 +95,61 @@ widgets:
           outline_width: 0
           items:
             styles: btn_nav_style
+            checked:
+              bg_color: 0x103E5C
+              bg_opa: 100%
+              border_width: 2
+              border_color: 0x00FF00
           rows:
             - buttons:
+              - id: page_watch_sw
+                text: "\U000F0425"
+                on_press:
+                  then:
+                    - lvgl.page.show: page_watch
+                    - lambda: |-
+                        id(idle_counter) = 0;
+                        auto call = id(display_backlight).make_call();
+                        call.set_brightness(0.03); // Мінімальна яскравість (нічний режим)
+                        call.perform();
+              - id: page_dash_sw
+                text: "\U000F07D0"
+                on_press:
+                  then:
+                    lvgl.page.show: page_dash
+              - id: page_lights_sw
+                text: "\U000F032B"
+                on_press:
+                  then:
+                    lvgl.page.show: page_lights
+              - id: page_temp_sw
+                text: "\U000F050F"
+                on_press:
+                  then:
+                    lvgl.page.show: page_temp
+              - id: page_solar_sw
+                text: "\U000F010C"
+                on_press:
+                  then:
+                    lvgl.page.show: page_solar
+              - id: page_settings_sw
+                text: "\U000F0493"
+                on_press:
+                  then:
+                    lvgl.page.show: page_settings
+
               - id: page_prev
-                text: "\uF053"
+                text: "\U000F0141"
                 on_press:
                   then:
                     lvgl.page.previous:
               - id: page_home
-                text: "\uF015"
+                text: "\U000F02DC"
                 on_press:
                   then:
                     lvgl.page.show: page_dash
               - id: page_next
-                text: "\uF054"
+                text: "\U000F0142"
                 on_press:
                   then:
                     lvgl.page.next:

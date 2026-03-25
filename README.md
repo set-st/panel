@@ -67,6 +67,18 @@ Display brightness is controlled via `float` (0.0–1.0), while the LVGL slider 
 ### 3. Local Power Calculation
 To minimize latency and increase accuracy, the summation of three-phase power consumption (MAIC) occurs locally on the ESP32 in `template` sensors with robust `NaN` value handling.
 
+### 4. Navigation Sync & Visual Feedback
+The bottom navigation bar uses a `buttonmatrix`. To provide visual feedback, the `CHECKED` state is styled with a subtle blue background (`0x103E5C`) and a `2px` green top border. Since ESPHome doesn't natively sync `buttonmatrix` states with active pages, a custom C++ block in the 1s interval handles this:
+*   Sets buttons to `CHECKABLE` on boot.
+*   Updates the `CHECKED` flag based on `id(page_xxx).is_showing()`.
+
+### 5. "Power Off" (Sleep) Shortcut
+The clock icon in the footer acts as an instant sleep button. When pressed, it:
+1.  Switches to the `page_watch`.
+2.  Forces `idle_counter` to `0`.
+3.  Immediately sets backlight brightness to `3%` (night mode).
+This bypasses the standard idle timeout and provides a quick way to dim the display.
+
 ## 🚀 Build and Flash
 
 To compile and upload to the device:
