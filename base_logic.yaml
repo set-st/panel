@@ -116,6 +116,7 @@ font:
         "\U000F1903", # home lighting
         "\U000F12A9", # tap
         "\U000F192C", # grid in
+        "\U000F0F80", # external lights
       ]
   - file: "font/icons_v2.ttf"
     id: icons_20

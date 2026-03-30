@@ -106,6 +106,17 @@ time:
   - platform: sntp
     id: sntp_time
     timezone: "EET-2EEST,M3.5.0/3,M10.5.0/4"
+    on_time:
+      - hours: 2,3,4,5
+        minutes: 5
+        seconds: 0
+        then:
+          - switch.turn_on: switch_antiburn
+      - hours: 2,3,4,5
+        minutes: 10
+        seconds: 0
+        then:
+          - switch.turn_off: switch_antiburn
 
 # --- Sensors ---
 sensor:
@@ -282,6 +293,28 @@ switch:
   - platform: homeassistant
     id: switch_kitchen_lights
     entity_id: switch.plant_grow_light_switch_1
+  - platform: template
+    name: Antiburn
+    id: switch_antiburn
+    icon: mdi:television-shimmer
+    optimistic: true
+    entity_category: "config"
+    turn_on_action:
+      - logger.log: "Starting Antiburn"
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+      - lvgl.pause:
+          show_snow: true
+    turn_off_action:
+      - logger.log: "Stopping Antiburn"
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
 
 # --- Hardware ---
 waveshare_io_ch32v003:
@@ -337,6 +370,14 @@ touchscreen:
             call.perform();
           }
           id(idle_counter) = id(idle_timeout_s);
+  on_release:
+      then:
+        - if:
+            condition: lvgl.is_paused
+            then:
+              - lvgl.resume:
+              - lvgl.widget.redraw:
+              - switch.turn_off: switch_antiburn
 
 output:
   - platform: waveshare_io_ch32v003

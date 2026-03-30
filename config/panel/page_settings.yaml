@@ -115,6 +115,16 @@ widgets:
                         on_click: 
                           then: 
                             - lambda: "id(reboot_btn).press();"
+                    - button:
+                        styles: btn_centered_style
+                        checkable: true
+                        id: btn_backlight
+                        widgets:
+                          - label: { text: "\U000F1802", align: TOP_LEFT, x: 0, y: 15, text_font: mdi_20, text_color: 0xFFD60A }
+                          - label: { text: "Підсвітка панелі", align: CENTER, text_font: roboto_14 }
+                        on_click:
+                          then:
+                            - light.toggle: display_backlight
                     - checkbox:
                         id: cycle_checkbox
                         text_font: roboto_14

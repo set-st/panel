@@ -7,24 +7,6 @@ widgets:
       pad_all: 15
       layout: { type: flex, flex_flow: COLUMN }
       widgets:
-        # --- СЕКЦИЯ: СЕРВИС ---
-        - label: { text: "СЕРВІС", styles: group_label_style, y: 20 }
-        - obj:
-            width: 100%
-            bg_opa: TRANSP
-            styles: group_style
-            layout: { type: flex, flex_flow: ROW }
-            widgets:
-              - button:
-                  styles: button_small_style
-                  checkable: true
-                  id: btn_backlight
-                  widgets:
-                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
-                    - label: { text: "Підсвітка панелі", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
-                  on_click:
-                    then:
-                      - light.toggle: display_backlight
         # --- СЕКЦИЯ: ОСВЕЩЕНИЕ ---
         - label: { text: "ОСВІТЛЕННЯ", styles: group_label_style, y: 20 }
         - obj:
@@ -48,7 +30,7 @@ widgets:
                   checkable: true
                   id: btn_external_lights
                   widgets:
-                    - label: { text: "\U000F1802", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
+                    - label: { text: "\U000F0F80", align: TOP_LEFT, x: 10, y: 10, text_font: mdi_20, text_color: 0xFFD60A }
                     - label: { text: "Підсвітка будинку", align: BOTTOM_LEFT, x: 10, y: -10, text_font: roboto_14 }
                   on_click:
                     then:
