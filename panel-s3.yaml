@@ -30,6 +30,8 @@ esphome:
       - globals.set:
           id: boot_completed
           value: 'true'
+      - delay: 5s
+      - lvgl.widget.hide: boot_screen
 
 http_request:
   verify_ssl: false
@@ -388,6 +390,7 @@ light:
   - platform: monochromatic
     output: pwm_backlight_output
     name: Display Backlight
+    entity_category: "config"
     id: display_backlight
     restore_mode: RESTORE_DEFAULT_ON
 

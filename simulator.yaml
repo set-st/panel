@@ -1,6 +1,9 @@
 # simulator.yaml
 esphome:
   name: panel-simulator
+  on_boot:
+    - delay: 5s
+    - lvgl.widget.hide: boot_screen
 
 host:
 
