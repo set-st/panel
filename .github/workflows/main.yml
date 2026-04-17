@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - 'config/**'
+      - 'font/**'
+
+jobs:
+  validate:
+    name: Validate Generated Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python scripts/build.py --check
+      - run: python scripts/check_icon_groups.py
+
+  compile:
+    name: Compile Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache ESPHome build
+        uses: actions/cache@v5
+        with:
+          path: builds/.esphome
+          key: esphome-ci-s3-${{ hashFiles('*.yaml', 'config/**', 'fonts/**') }}
+          restore-keys: |
+            esphome-ci-s3-
+
+      - name: Compile S3 firmware
+        run: >-
+          docker run --rm -v "${PWD}:/config"
+          ghcr.io/esphome/esphome:2026.4.0
+          compile /panel-s3.yaml
