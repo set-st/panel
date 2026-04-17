@@ -1,0 +1,107 @@
+name: Build Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-firmware:
+    name: Build ${{ matrix.slug }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: panel-s3
+            slug: panel-s3
+            chip: ESP32-S3
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache ESPHome build
+        uses: actions/cache@v5
+        with:
+          path: builds/.esphome
+          key: esphome-${{ matrix.slug }}-${{ hashFiles('builds/*.yaml', 'common/**', 'devices/**') }}
+          restore-keys: |
+            esphome-${{ matrix.slug }}-
+
+      - name: Compile firmware
+        env:
+          VERSION: ${{ github.event.release.tag_name || github.ref_name }}
+        run: >-
+          docker run --rm
+          -v "${PWD}:/config"
+          ghcr.io/esphome/esphome:2026.4.0
+          -s firmware_version "${VERSION}"
+          compile panel-s3.yaml
+
+      - name: Collect firmware files and generate manifest
+        id: firmware
+        run: |
+          BUILD_DIR=$(dirname "$(find builds/.esphome/build -name firmware.factory.bin -print -quit)")
+          mkdir -p output
+
+          if [ ! -f "${BUILD_DIR}/firmware.factory.bin" ]; then
+            echo "::error::Firmware compilation failed — factory binary not found"
+            exit 1
+          fi
+
+          sudo cp "${BUILD_DIR}/firmware.factory.bin" output/${{ matrix.slug }}.factory.bin
+          sudo cp "${BUILD_DIR}/firmware.bin" output/${{ matrix.slug }}.ota.bin
+
+          OTA_MD5=$(md5sum output/${{ matrix.slug }}.ota.bin | cut -d ' ' -f 1)
+          VERSION="${{ github.event.release.tag_name || github.ref_name }}"
+
+          cat > output/${{ matrix.slug }}.manifest.json << EOF
+          {
+            "name": "Smart Home Control Panel",
+            "version": "${VERSION}",
+            "home_assistant_domain": "esphome",
+            "builds": [
+              {
+                "chipFamily": "${{ matrix.chip }}",
+                "parts": [
+                  { "path": "${{ matrix.slug }}.factory.bin", "offset": 0 }
+                ],
+                "ota": {
+                  "path": "${{ matrix.slug }}.ota.bin",
+                  "md5": "${OTA_MD5}",
+                  "release_url": "https://github.com/set-st/panel/releases/tag/${VERSION}"
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-${{ matrix.slug }}
+          path: output/
+
+  publish:
+    name: Publish to Release
+    if: github.event_name == 'release'
+    needs: build-firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: firmware-*
+          merge-multiple: true
+          path: firmware
+
+      - name: Upload firmware to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "${{ github.event.release.tag_name }}" firmware/* --clobber

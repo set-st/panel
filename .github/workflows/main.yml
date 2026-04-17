@@ -33,4 +33,4 @@ jobs:
         run: >-
           docker run --rm -v "${PWD}:/config"
           ghcr.io/esphome/esphome:2026.4.0
-          compile /panel-s3.yaml
+          compile panel-s3.yaml
