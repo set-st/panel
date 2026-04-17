@@ -29,6 +29,6 @@ jobs:
 
       - name: Compile S3 firmware
         run: >-
-          docker run --rm -v "${PWD}:/config"
+          docker run --rm -v "${PWD}"
           ghcr.io/esphome/esphome:2026.4.0
           compile panel-s3.yaml
