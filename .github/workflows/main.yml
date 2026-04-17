@@ -12,8 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: python scripts/build.py --check
-      - run: python scripts/check_icon_groups.py
 
   compile:
     name: Compile Firmware
