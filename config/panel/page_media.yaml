@@ -26,8 +26,8 @@ widgets:
                   width: 300
                   height: 40
                   options:
-                    - "ESP32 Airplay"
-                    - "Squeezelite"
+                    - "Mono Airplay"
+                    - "A1S Airplay"
                     - "Music Assistant"
                   on_value:
                     then:
@@ -42,7 +42,7 @@ widgets:
         # --- Информация о треке ---
         - obj:
             width: 100%
-            height: 160
+            height: 120
             bg_opa: TRANSP
             scrollbar_mode: "OFF"
             scrollable: false
@@ -52,10 +52,37 @@ widgets:
               - label: { id: media_track_title, text: "Немає даних", text_font: roboto_22, text_color: 0xFFFFFF, text_align: CENTER, width: 90% }
               - label: { id: media_track_artist, text: "Виконавець невідомий", text_font: roboto_14, text_color: 0xAAAAAA, text_align: CENTER, width: 90%, pad_top: 10 }
 
+        # --- Громкость ---
+        - obj:
+            width: 100%
+            height: 80
+            bg_opa: TRANSP
+            scrollbar_mode: "OFF"
+            scrollable: false
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW, flex_align_cross: center }
+            widgets:
+              - label: { text: "\U000F057E", text_font: mdi_20, text_color: 0xAAAAAA, pad_right: 15 }
+              - slider:
+                  id: media_volume_slider
+                  width: 90%
+                  height: 30
+                  min_value: 0
+                  max_value: 100
+                  styles: slider_style
+                  on_value:
+                    then:
+                      - homeassistant.service:
+                          service: media_player.volume_set
+                          data:
+                            entity_id: !lambda "return id(selected_player_entity).state;"
+                            volume_level: !lambda "return x / 100.0;"
+
         # --- Управление воспроизведением ---
         - obj:
             width: 100%
-            height: 90
+            height: 180
+            pad_top: 0
             bg_opa: TRANSP
             scrollbar_mode: "OFF"
             scrollable: false
@@ -100,29 +127,3 @@ widgets:
                           service: media_player.media_next_track
                           data:
                             entity_id: !lambda "return id(selected_player_entity).state;"
-
-        # --- Громкость ---
-        - obj:
-            width: 100%
-            height: 80
-            bg_opa: TRANSP
-            scrollbar_mode: "OFF"
-            scrollable: false
-            styles: group_style
-            layout: { type: flex, flex_flow: ROW, flex_align_cross: center }
-            widgets:
-              - label: { text: "\U000F057E", text_font: mdi_20, text_color: 0xAAAAAA, pad_right: 15 }
-              - slider:
-                  id: media_volume_slider
-                  width: 85%
-                  height: 30
-                  min_value: 0
-                  max_value: 100
-                  styles: slider_style
-                  on_value:
-                    then:
-                      - homeassistant.service:
-                          service: media_player.volume_set
-                          data:
-                            entity_id: !lambda "return id(selected_player_entity).state;"
-                            volume_level: !lambda "return x / 100.0;"
