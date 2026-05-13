@@ -132,6 +132,11 @@ widgets:
                 on_press:
                   then:
                     lvgl.page.show: page_solar
+              - id: page_media_sw
+                text: "\U000F075A"
+                on_press:
+                  then:
+                    lvgl.page.show: page_media
               - id: page_settings_sw
                 text: "\U000F0493"
                 on_press:

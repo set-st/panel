@@ -123,6 +123,19 @@ time:
 # --- Sensors ---
 sensor:
   - platform: homeassistant
+    id: mass_volume
+    entity_id: media_player.music_assistant
+    attribute: volume_level
+  - platform: homeassistant
+    id: player_1_volume
+    entity_id: media_player.esp32_airplay_4dbde4
+    attribute: volume_level
+  - platform: homeassistant
+    id: player_2_volume
+    entity_id: media_player.squeezelite_a1s_airplay
+    attribute: volume_level
+
+  - platform: homeassistant
     id: house_temp
     entity_id: sensor.average_house_temperature
   - platform: homeassistant
@@ -459,7 +472,7 @@ interval:
           // Синхронізація активної кнопки у футері
           static bool nav_init = false;
           if (!nav_init && id(top_bar_footer) != nullptr) {
-              for (int i = 0; i < 6; i++) {
+              for (int i = 0; i < 7; i++) {
                   lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKABLE);
               }
               lv_btnmatrix_set_one_checked(id(top_bar_footer)->obj, true);
@@ -472,10 +485,11 @@ interval:
           else if (id(page_lights).is_showing()) active_page_idx = 2;
           else if (id(page_temp).is_showing()) active_page_idx = 3;
           else if (id(page_solar).is_showing()) active_page_idx = 4;
-          else if (id(page_settings).is_showing()) active_page_idx = 5;
+          else if (id(page_media).is_showing()) active_page_idx = 5;
+          else if (id(page_settings).is_showing()) active_page_idx = 6;
 
           if (active_page_idx != -1 && id(top_bar_footer) != nullptr) {
-              for (int i = 0; i < 6; i++) {
+              for (int i = 0; i < 7; i++) {
                   if (i == active_page_idx) {
                       lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKED);
                   } else {
@@ -643,6 +657,37 @@ interval:
             lv_obj_clear_state(id(btn_hall), LV_STATE_CHECKED);
           }
 
+          // Media Player Sync
+          if (id(page_media).is_showing()) {
+            std::string current_player = id(selected_player_entity).state;
+            std::string title = "Немає даних";
+            std::string artist = "Виконавець невідомий";
+            std::string state = "idle";
+            float volume = 0;
+
+            if (current_player == "media_player.music_assistant") {
+              if (id(mass_title).has_state()) title = id(mass_title).state;
+              if (id(mass_artist).has_state()) artist = id(mass_artist).state;
+              if (id(mass_state).has_state()) state = id(mass_state).state;
+              if (!std::isnan(id(mass_volume).state)) volume = id(mass_volume).state;
+            } else if (current_player == "media_player.esp32_airplay_4dbde4") {
+              if (id(player_1_title).has_state()) title = id(player_1_title).state;
+              if (id(player_1_artist).has_state()) artist = id(player_1_artist).state;
+              if (id(player_1_state).has_state()) state = id(player_1_state).state;
+              if (!std::isnan(id(player_1_volume).state)) volume = id(player_1_volume).state;
+            } else if (current_player == "media_player.squeezelite_a1s_airplay") {
+              if (id(player_2_title).has_state()) title = id(player_2_title).state;
+              if (id(player_2_artist).has_state()) artist = id(player_2_artist).state;
+              if (id(player_2_state).has_state()) state = id(player_2_state).state;
+              if (!std::isnan(id(player_2_volume).state)) volume = id(player_2_volume).state;
+            }
+
+            lv_label_set_text(id(media_track_title), title.c_str());
+            lv_label_set_text(id(media_track_artist), artist.c_str());
+            lv_label_set_text(id(lbl_media_play_pause), (state == "playing") ? "\U000F03E4" : "\U000F040A");
+            lv_slider_set_value(id(media_volume_slider), (int)(volume * 100), LV_ANIM_OFF);
+          }
+
 button:
   - platform: restart
     id: reboot_btn
@@ -657,3 +702,45 @@ text_sensor:
   - platform: wifi_info
     ip_address:
       id: wifi_ip_address
+
+  - platform: template
+    id: selected_player_entity
+    lambda: 'return {"media_player.music_assistant"};'
+    update_interval: never
+
+  # --- Media Player Track Info (Home Assistant) ---
+  - platform: homeassistant
+    id: mass_title
+    entity_id: media_player.music_assistant
+    attribute: media_title
+  - platform: homeassistant
+    id: mass_artist
+    entity_id: media_player.music_assistant
+    attribute: media_artist
+  - platform: homeassistant
+    id: mass_state
+    entity_id: media_player.music_assistant
+
+  - platform: homeassistant
+    id: player_1_title
+    entity_id: media_player.esp32_airplay_4dbde4
+    attribute: media_title
+  - platform: homeassistant
+    id: player_1_artist
+    entity_id: media_player.esp32_airplay_4dbde4
+    attribute: media_artist
+  - platform: homeassistant
+    id: player_1_state
+    entity_id: media_player.esp32_airplay_4dbde4
+
+  - platform: homeassistant
+    id: player_2_title
+    entity_id: media_player.squeezelite_a1s_airplay
+    attribute: media_title
+  - platform: homeassistant
+    id: player_2_artist
+    entity_id: media_player.squeezelite_a1s_airplay
+    attribute: media_artist
+  - platform: homeassistant
+    id: player_2_state
+    entity_id: media_player.squeezelite_a1s_airplay

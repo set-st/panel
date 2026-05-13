@@ -124,6 +124,13 @@ font:
         "\U000F12A9", # tap
         "\U000F192C", # grid in
         "\U000F0F80", # external lights
+        "\U000F040A", # play
+        "\U000F03E4", # pause
+        "\U000F04AE", # skip-previous
+        "\U000F04AD", # skip-next
+        "\U000F075A", # music
+        "\U000F04D5", # speaker
+        "\U000F057E", # volume-high
       ]
   - file: "font/icons_v2.ttf"
     id: icons_20

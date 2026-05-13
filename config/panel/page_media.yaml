@@ -1,0 +1,128 @@
+# config/panel/page_media.yaml
+id: page_media
+widgets:
+  - obj:
+      width: 100%
+      styles: page_bg_style
+      pad_all: 15
+      scrollable: false
+      layout: { type: flex, flex_flow: COLUMN }
+      widgets:
+        - label: { text: "МУЗИКА", styles: group_label_style }
+
+        # --- Выбор плеера ---
+        - obj:
+            width: 100%
+            height: 60
+            bg_opa: TRANSP
+            scrollbar_mode: "OFF"
+            scrollable: false
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW, flex_align_cross: center }
+            widgets:
+              - label: { text: "\U000F04D5", text_font: mdi_20, text_color: 0x0A84FF, pad_right: 15 }
+              - dropdown:
+                  id: media_player_selector
+                  width: 300
+                  height: 40
+                  options:
+                    - "ESP32 Airplay"
+                    - "Squeezelite"
+                    - "Music Assistant"
+                  on_value:
+                    then:
+                      - lambda: |-
+                          const char* players[] = {
+                            "media_player.esp32_airplay_4dbde4",
+                            "media_player.squeezelite_a1s_airplay",
+                            "media_player.music_assistant"
+                          };
+                          id(selected_player_entity).state = players[x];
+
+        # --- Информация о треке ---
+        - obj:
+            width: 100%
+            height: 160
+            bg_opa: TRANSP
+            scrollbar_mode: "OFF"
+            scrollable: false
+            styles: group_style
+            layout: { type: flex, flex_flow: COLUMN, flex_align_main: center, flex_align_cross: center }
+            widgets:
+              - label: { id: media_track_title, text: "Немає даних", text_font: roboto_22, text_color: 0xFFFFFF, text_align: CENTER, width: 90% }
+              - label: { id: media_track_artist, text: "Виконавець невідомий", text_font: roboto_14, text_color: 0xAAAAAA, text_align: CENTER, width: 90%, pad_top: 10 }
+
+        # --- Управление воспроизведением ---
+        - obj:
+            width: 100%
+            height: 90
+            bg_opa: TRANSP
+            scrollbar_mode: "OFF"
+            scrollable: false
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW, flex_align_main: center, flex_align_cross: center }
+
+            widgets:
+              - button:
+                  width: 80
+                  height: 80
+                  styles: button_style
+                  widgets: 
+                    - label: { text: "\U000F04AE", align: CENTER, text_font: mdi_20 }
+                  on_click:
+                    then:
+                      - homeassistant.service:
+                          service: media_player.media_previous_track
+                          data:
+                            entity_id: !lambda "return id(selected_player_entity).state;"
+              - button:
+                  id: btn_media_play_pause
+                  width: 100
+                  height: 100
+                  styles: button_style
+                  widgets: 
+                    - label: { id: lbl_media_play_pause, text: "\U000F040A", align: CENTER, text_font: mdi_20 }
+                  on_click:
+                    then:
+                      - homeassistant.service:
+                          service: media_player.media_play_pause
+                          data:
+                            entity_id: !lambda "return id(selected_player_entity).state;"
+              - button:
+                  width: 80
+                  height: 80
+                  styles: button_style
+                  widgets: 
+                    - label: { text: "\U000F04AD", align: CENTER, text_font: mdi_20 }
+                  on_click:
+                    then:
+                      - homeassistant.service:
+                          service: media_player.media_next_track
+                          data:
+                            entity_id: !lambda "return id(selected_player_entity).state;"
+
+        # --- Громкость ---
+        - obj:
+            width: 100%
+            height: 80
+            bg_opa: TRANSP
+            scrollbar_mode: "OFF"
+            scrollable: false
+            styles: group_style
+            layout: { type: flex, flex_flow: ROW, flex_align_cross: center }
+            widgets:
+              - label: { text: "\U000F057E", text_font: mdi_20, text_color: 0xAAAAAA, pad_right: 15 }
+              - slider:
+                  id: media_volume_slider
+                  width: 85%
+                  height: 30
+                  min_value: 0
+                  max_value: 100
+                  styles: slider_style
+                  on_value:
+                    then:
+                      - homeassistant.service:
+                          service: media_player.volume_set
+                          data:
+                            entity_id: !lambda "return id(selected_player_entity).state;"
+                            volume_level: !lambda "return x / 100.0;"

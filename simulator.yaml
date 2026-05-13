@@ -7,6 +7,8 @@ esphome:
 
 host:
 
+api:
+
 logger:
   level: DEBUG
 
@@ -143,6 +145,15 @@ sensor:
   - platform: template
     id: must_battery_voltage
     lambda: "return 54.2;"
+  - platform: template
+    id: mass_volume
+    lambda: "return 0.5;"
+  - platform: template
+    id: player_1_volume
+    lambda: "return 0.3;"
+  - platform: template
+    id: player_2_volume
+    lambda: "return 0.4;"
 
 binary_sensor:
   - platform: template
@@ -176,6 +187,41 @@ text_sensor:
   - platform: template
     id: wifi_ip_address
     lambda: 'return {"192.168.1.100"};'
+
+  - platform: template
+    id: selected_player_entity
+    lambda: 'return {"media_player.music_assistant"};'
+    update_interval: never
+
+  - platform: template
+    id: mass_title
+    lambda: 'return {"Song from Music Assistant"};'
+  - platform: template
+    id: mass_artist
+    lambda: 'return {"MA Artist"};'
+  - platform: template
+    id: mass_state
+    lambda: 'return {"playing"};'
+
+  - platform: template
+    id: player_1_title
+    lambda: 'return {"ESP32 Airplay Track"};'
+  - platform: template
+    id: player_1_artist
+    lambda: 'return {"Airplay Artist"};'
+  - platform: template
+    id: player_1_state
+    lambda: 'return {"idle"};'
+
+  - platform: template
+    id: player_2_title
+    lambda: 'return {"Squeezelite Track"};'
+  - platform: template
+    id: player_2_artist
+    lambda: 'return {"Squeezelite Artist"};'
+  - platform: template
+    id: player_2_state
+    lambda: 'return {"idle"};'
 
 output:
   - platform: template
@@ -228,7 +274,7 @@ interval:
           // Синхронізація активної кнопки у футері
           static bool nav_init = false;
           if (!nav_init && id(top_bar_footer) != nullptr) {
-              for (int i = 0; i < 6; i++) {
+              for (int i = 0; i < 7; i++) {
                   lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKABLE);
               }
               lv_btnmatrix_set_one_checked(id(top_bar_footer)->obj, true);
@@ -241,10 +287,11 @@ interval:
           else if (id(page_lights).is_showing()) active_page_idx = 2;
           else if (id(page_temp).is_showing()) active_page_idx = 3;
           else if (id(page_solar).is_showing()) active_page_idx = 4;
-          else if (id(page_settings).is_showing()) active_page_idx = 5;
+          else if (id(page_media).is_showing()) active_page_idx = 5;
+          else if (id(page_settings).is_showing()) active_page_idx = 6;
 
           if (active_page_idx != -1 && id(top_bar_footer) != nullptr) {
-              for (int i = 0; i < 6; i++) {
+              for (int i = 0; i < 7; i++) {
                   if (i == active_page_idx) {
                       lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKED);
                   } else {
@@ -394,4 +441,26 @@ interval:
             lv_obj_add_state(id(btn_hall), LV_STATE_CHECKED);
           } else {
             lv_obj_clear_state(id(btn_hall), LV_STATE_CHECKED);
+          }
+
+          // Media Player Sync (Simulator)
+          if (id(page_media).is_showing()) {
+            std::string current_player = id(selected_player_entity).state;
+            std::string title = "Немає даних";
+            std::string artist = "Виконавець невідомий";
+            std::string state = "idle";
+            float volume = 0;
+
+            if (current_player == "media_player.music_assistant") {
+              title = id(mass_title).state; artist = id(mass_artist).state; state = id(mass_state).state; volume = id(mass_volume).state;
+            } else if (current_player == "media_player.esp32_airplay_4dbde4") {
+              title = id(player_1_title).state; artist = id(player_1_artist).state; state = id(player_1_state).state; volume = id(player_1_volume).state;
+            } else if (current_player == "media_player.squeezelite_a1s_airplay") {
+              title = id(player_2_title).state; artist = id(player_2_artist).state; state = id(player_2_state).state; volume = id(player_2_volume).state;
+            }
+
+            lv_label_set_text(id(media_track_title), title.c_str());
+            lv_label_set_text(id(media_track_artist), artist.c_str());
+            lv_label_set_text(id(lbl_media_play_pause), (state == "playing") ? "\U000F03E4" : "\U000F040A");
+            lv_slider_set_value(id(media_volume_slider), (int)(volume * 100), LV_ANIM_OFF);
           }

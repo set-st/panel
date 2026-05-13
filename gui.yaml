@@ -98,6 +98,7 @@ lvgl:
       text_color: 0xFFFFFF
       text_font: roboto_22
       border_width: 0
+      scrollbar_mode: "OFF"
     - id: btn_nav_style
       bg_opa: transp
       border_width: 0
@@ -112,11 +113,13 @@ lvgl:
     - id: nav_btn_style
       text_font: mdi_20
       text_color: 0xFFFFFF
+      scrollbar_mode: "OFF"
     - id: slider_style
       bg_color: "0xAFC1D0"
       border_width: 2
       height: 40
       width: 598
+      scrollbar_mode: "OFF"
     - id: btn_centered_style
       width: 150
       height: 50
@@ -126,6 +129,7 @@ lvgl:
       radius: 8
       text_color: 0xFFFFFF
       pad_all: 0
+      scrollbar_mode: "OFF"
     - id: card_style_triple
       width: 220
       height: 170
@@ -144,6 +148,7 @@ lvgl:
     - !include config/panel/page_watch.yaml
     - !include config/panel/page_dash.yaml
     - !include config/panel/page_lights.yaml
+    - !include config/panel/page_media.yaml
     - !include config/panel/page_temp.yaml
     - !include config/panel/page_solar.yaml
     - !include config/panel/page_settings.yaml
