@@ -84,6 +84,7 @@ web_server:
 
 ota:
   - platform: esphome
+    password: !secret ota_password
     on_begin:
       - lvgl.pause:
       - logger.log: "OTA started, LVGL paused"
@@ -95,6 +96,9 @@ wifi:
   password: !secret wifi_password
   fast_connect: true
   power_save_mode: none
+  # WSL2 sits behind a NAT, so mDNS (.local) never reaches the device.
+  # Force ESPHome to talk to the static IP directly for OTA/upload.
+  use_address: 192.168.1.178
   ap:
     ssid: "Controll Panel Fallback"
   manual_ip:
@@ -371,11 +375,22 @@ touchscreen:
   id: my_touchscreen
   display: my_display
   i2c_id: bus_a
+  # I2C scan confirms the chip sits at 0x5D (not 0x14). Pin it explicitly so
+  # the driver does not fall back to the wrong secondary address.
+  address: 0x5D
   interrupt_pin: GPIO4
   reset_pin:
     waveshare_io_ch32v003: waveshare_io_hub
     number: 1
     mode: OUTPUT
+  # Provide calibration explicitly. Without it the driver must READ the max
+  # resolution from the chip at boot; a single I2C read failure marks the
+  # touchscreen FAILED ("Calibration error") and it never recovers.
+  calibration:
+    x_min: 0
+    x_max: 1024
+    y_min: 0
+    y_max: 600
   on_touch:
     then:
       - lambda: |-
