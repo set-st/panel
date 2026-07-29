@@ -2,7 +2,8 @@
 # Единое хранилище шрифтов и базовых ресурсов
 
 image:
-  - file: https://media.esphome.io/logo/logo.png
+  - platform: file
+    file: https://media.esphome.io/logo/logo.png
     id: boot_logo
     resize: 200x200
     type: RGB565

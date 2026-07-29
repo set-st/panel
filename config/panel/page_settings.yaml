@@ -46,7 +46,7 @@ widgets:
                               call.perform();
                             }
                             
-                            static char tbuf[32];
+                            static char tbuf[64];
                             snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)x);
                             lv_label_set_text(id(dimmer_label), tbuf);
                           }
