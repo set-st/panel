@@ -84,6 +84,7 @@ web_server:
 
 ota:
   - platform: esphome
+    password: !secret ota_password
     on_begin:
       - lvgl.pause:
       - logger.log: "OTA started, LVGL paused"

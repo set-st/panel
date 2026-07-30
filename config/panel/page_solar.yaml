@@ -14,6 +14,7 @@ widgets:
             bg_opa: TRANSP
             styles: group_style
             layout: { type: flex, flex_flow: ROW }
+            scrollbar_mode: "OFF"
             widgets:
               - obj:
                   styles: card_style
@@ -42,6 +43,7 @@ widgets:
             bg_opa: TRANSP
             styles: group_style
             layout: { type: flex, flex_flow: ROW }
+            scrollbar_mode: "OFF"
             widgets:
               - obj:
                   styles: card_style_triple
@@ -71,6 +73,6 @@ widgets:
                   styles: card_style_triple
                   widgets:
                     - label: { text: "\U000F07D0", x: 15, y: 15, text_font: mdi_20, text_color: 0x0A84FF}
-                    - label: { text: "Споживання будинку", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
+                    - label: { text: "Споживання", x: 45, y: 18, text_font: roboto_14, text_color: 0xAAAAAA }
                     - label: { id: power_total_power, text: "0 kWh", align: BOTTOM_LEFT, x: 15, y: -62 }
                     - label: { id: power_total_current, text: "0 A", align: BOTTOM_LEFT, x: 15, y: -38 }

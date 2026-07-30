@@ -14,6 +14,7 @@ widgets:
             bg_opa: TRANSP
             styles: group_style
             layout: { type: flex, flex_flow: ROW }
+            scrollbar_mode: "OFF"
             widgets:
               - obj:
                   styles: card_style
@@ -43,6 +44,7 @@ widgets:
             styles: group_style
             pad_all: 15
             layout: { type: flex, flex_flow: COLUMN }
+            scrollbar_mode: "OFF"
             widgets:
               - obj:
                   styles: card_style

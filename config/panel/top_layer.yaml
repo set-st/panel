@@ -33,12 +33,17 @@ widgets:
                   text_font: roboto_22
                   text_color: 0xFFFFFF
                   pad_right: 15
+                  margin_top: -10
+                  align: CENTER
+                  height: 50
               - label:
                   id: top_date_label
                   text: "01.01.2024"
                   text_font: roboto_14
                   text_color: 0xAAAAAA
                   width: 150
+                  align: CENTER
+                  height: 50
 
         # Правая часть: Статусы (Battery, HA, WiFi, Temp)
         - obj:
@@ -54,6 +59,7 @@ widgets:
                   text: "\U000F007E"
                   text_font: mdi_20
                   text_color: 0x00FF00
+                  height: 50
 
               # Internal Battery Percentage
               - label:
@@ -62,6 +68,7 @@ widgets:
                   text_font: roboto_14
                   text_color: 0xAAAAAA
                   pad_right: 20
+                  height: 50
 
               # HA Status Icon
               - label:
@@ -70,6 +77,7 @@ widgets:
                   text_font: icons_20
                   text_color: 0x00FF00
                   pad_right: 20
+                  height: 50
               
               # WiFi Strength Icon
               - label:
@@ -78,6 +86,7 @@ widgets:
                   text_font: icons_20
                   text_color: 0xFFFFFF
                   pad_right: 20
+                  height: 50
               
               # Outside Temperature
               - label:
@@ -85,6 +94,7 @@ widgets:
                   text: "--.-°C"
                   text_font: roboto_14
                   text_color: 0xAAAAAA
+                  height: 50
 
   # Footer (Navigation)
   - buttonmatrix:
