@@ -1,0 +1,129 @@
+<!doctype html>
+<!--
+  Offline preview of the panel web editor (config/panel/configurator.js) without
+  flashing the device. Open this file in a browser. Device text/number entities
+  are emulated with localStorage; "Скинути дані" restores the demo data.
+-->
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>Panel editor preview</title>
+  <link rel="stylesheet" href="../config/panel/configurator.css">
+  <style>
+    body { margin: 0; padding: 20px; background: #1b1f22; color: #ccc; font: 14px system-ui, sans-serif; }
+    #reset { padding: 8px 14px; border-radius: 8px; border: 1px solid #444; background: #2a2f33; color: #ddd; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <p>Превʼю веб-редактора без пристрою. Дані зберігаються в localStorage цього браузера.
+    <button id="reset" type="button">Скинути дані</button></p>
+  <script>
+    const KEY = "panel-preview";
+    const DEMO = {
+      "text/Panel Pages": "Головна|home|1;Світло|ceiling-light|1;Клімат|thermostat|0",
+      "text/Panel Card 1": "toggle;light.kitchen;Кухня;ceiling-light;0;1",
+      "text/Panel Card 2": "sensor;sensor.living_temperature;Вітальня;thermometer;0;1",
+      "text/Panel Card 3": "action;scene.movie;Кіно;movie-open;0;2",
+      "text/Panel Card 4": "subpage;2;Клімат;;0;1",
+      "text/Panel Card 5": "toggle;light.hall;Коридор;lightbulb;1;1",
+      "text/Panel Card 6": "alarm;alarm;;;0;2",
+      "text/Panel Card 7": "chart;sensor.solar_power;Сонце;;0;2;6",
+      "text/Panel Header Sensor": "sensor.outside_temperature",
+      "number/Screen Brightness": "80",
+      "number/Screen Sleep Timeout": "60",
+      "text/Panel Alarm Sensor": "binary_sensor.kyivska_oblast_air",
+      "switch/Antiburn": false,
+      "sensor/WiFi Signal": "-58",
+      "sensor/Internal Battery Percentage": "87",
+    };
+    const load = () => JSON.parse(localStorage.getItem(KEY) || "null") || { ...DEMO };
+    const save = (s) => localStorage.setItem(KEY, JSON.stringify(s));
+
+    // Emulates the ESPHome web_server REST API used by configurator.js.
+    window.fetch = async (url, opts = {}) => {
+      const u = new URL(url, "http://device");
+      const parts = u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+      const key = `${parts[0]}/${parts[1]}`;
+      const store = load();
+      if (["turn_on", "turn_off", "press"].includes(parts[2])) {
+        if (parts[2] !== "press") { store[key] = parts[2] === "turn_on"; save(store); }
+        console.log(parts[2], key);
+        return new Response("", { status: 200 });
+      }
+      if (parts[2] === "set" && (opts.method || "GET") === "POST") {
+        store[key] = u.searchParams.get("value") ?? "";
+        save(store);
+        console.log("set", key, "=", store[key]);
+        return new Response("", { status: 200 });
+      }
+      return new Response(JSON.stringify({ value: store[key] ?? "" }), { status: 200 });
+    };
+
+    // Fake Home Assistant WebSocket API: any URL, any non-empty token.
+    const DEMO_STATES = [
+      ["light.kitchen", "Кухня — стеля", "on"], ["light.hall", "Коридор", "off"],
+      ["light.living_room_lamp", "Вітальня — торшер", "on"], ["switch.boiler", "Бойлер", "off"],
+      ["fan.bathroom", "Витяжка ванна", "off"], ["cover.living_room_blinds", "Жалюзі вітальня", "open"],
+      ["lock.front_door", "Вхідні двері", "locked"], ["climate.bedroom", "Кондиціонер спальня", "cool"],
+      ["sensor.living_temperature", "Температура вітальня", "22.4", "°C"],
+      ["sensor.outside_temperature", "Температура надворі", "7.1", "°C"],
+      ["sensor.bedroom_humidity", "Вологість спальня", "48", "%"],
+      ["sensor.solar_power", "Сонячна генерація", "3120", "W"],
+      ["binary_sensor.hall_motion", "Рух у коридорі", "off"],
+      ["scene.movie", "Кіно", "2026-11-10T10:00:00"], ["script.good_night", "На добраніч", "off"],
+      ["button.restart_router", "Перезапустити роутер", "unknown"], ["automation.morning", "Ранок", "on"],
+      ["binary_sensor.kyivska_oblast_air", "Київська область Air", "off"],
+      ["binary_sensor.kyivska_oblast_air_red", "Київська область Air (red)", "off"],
+      ["binary_sensor.kyivska_oblast_air_yellow", "Київська область Air (yellow)", "off"],
+      ["binary_sensor.kyivska_oblast_artillery", "Київська область Artillery", "off"],
+      ["binary_sensor.kyivska_oblast_urban_fights", "Київська область Urban fights", "off"],
+    ].map(([entity_id, friendly_name, state, unit]) => ({
+      entity_id, state, attributes: { friendly_name, ...(unit ? { unit_of_measurement: unit } : {}) },
+    }));
+    window.WebSocket = class {
+      constructor() { setTimeout(() => this.emit({ type: "auth_required" }), 50); }
+      emit(msg) { this.onmessage?.({ data: JSON.stringify(msg) }); }
+      send(raw) {
+        const msg = JSON.parse(raw);
+        if (msg.type === "auth") setTimeout(() => this.emit({ type: msg.access_token ? "auth_ok" : "auth_invalid" }), 50);
+        if (msg.type === "get_states") setTimeout(() => this.emit({ id: msg.id, type: "result", success: true, result: DEMO_STATES }), 100);
+      }
+      close() {}
+    };
+    if (!localStorage.getItem("panel-ha")) localStorage.setItem("panel-ha", JSON.stringify({ url: "http://demo:8123", token: "demo" }));
+
+    document.getElementById("reset").onclick = () => { localStorage.removeItem(KEY); localStorage.removeItem("panel-ha"); location.reload(); };
+  </script>
+  <script src="../config/panel/configurator.js"></script>
+  <script>
+    // Open the editor right away.
+    addEventListener("load", () => {
+      document.getElementById("sp-configure")?.click();
+      // #search: open the card form and type into the entity field (for screenshots).
+      if (location.hash === "#icons") setTimeout(() => {
+        [...document.querySelectorAll(".sp-tile")].find((x) => x.textContent.includes("Кухня"))
+          .querySelector("button:nth-child(3)").click();
+        document.querySelector(".sp-card-editor .sp-icon-button").click();
+        document.querySelector(".sp-card-editor").scrollIntoView();
+      }, 800);
+      if (location.hash === "#chart") setTimeout(() => {
+        [...document.querySelectorAll(".sp-tile")].find((x) => x.textContent.includes("Сонце"))
+          .querySelector("button:nth-child(3)").click();
+        document.querySelector(".sp-card-editor").scrollIntoView();
+      }, 800);
+      if (location.hash === "#settings") setTimeout(() => {
+        document.querySelector(".sp-screen").open = true;
+        document.querySelector(".sp-screen").scrollIntoView();
+      }, 800);
+      if (location.hash === "#search") setTimeout(() => {
+        document.querySelector(".sp-add").click();
+        const type = document.querySelector(".sp-card-editor select");
+        type.value = "sensor"; type.dispatchEvent(new Event("change"));
+        const input = document.querySelector(".sp-entity-search input");
+        input.focus(); input.value = "темп"; input.dispatchEvent(new Event("input"));
+        document.querySelector(".sp-card-editor").scrollIntoView();
+      }, 500);
+    });
+  </script>
+</body>
+</html>

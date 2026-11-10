@@ -46,29 +46,65 @@ widgets:
                   height: 50
 
         # Правая часть: Статусы (Battery, HA, WiFi, Temp)
+        # Positioned on its own (not by the header's flex layout, which pushed
+        # it below the 50 px bar): right-aligned and vertically centred.
         - obj:
+            id: top_status
+            floating: true
+            align: RIGHT_MID
             bg_opa: TRANSP
             border_width: 0
             width: 280
-            layout: { type: flex, flex_flow: row, flex_align_cross: center, flex_align_main: end }
+            height: 50
+            layout: { type: flex, flex_flow: row, flex_align_cross: center, flex_align_track: center, flex_align_main: end }
             pad_all: 0
             widgets:
-              # Internal Battery
-              - label:
-                  id: lbl_bat_icon
-                  text: "\U000F007E"
-                  text_font: mdi_20
-                  text_color: 0x00FF00
-                  height: 50
+              # Internal battery: outline + level bar (system.yaml sets width/colour)
+              - obj:
+                  width: 30
+                  height: 16
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollbar_mode: "OFF"
+                  widgets:
+                    - obj:
+                        id: bat_body
+                        align: LEFT_MID
+                        width: 27
+                        height: 16
+                        radius: 4
+                        border_width: 2
+                        border_color: 0x8A9499
+                        bg_opa: TRANSP
+                        pad_all: 2
+                        scrollbar_mode: "OFF"
+                        widgets:
+                          - obj:
+                              id: bat_fill
+                              align: LEFT_MID
+                              width: 100%
+                              height: 100%
+                              radius: 2
+                              border_width: 0
+                              bg_color: 0x34C759
+                              bg_opa: COVER
+                    - obj:
+                        align: RIGHT_MID
+                        width: 3
+                        height: 6
+                        radius: 1
+                        border_width: 0
+                        bg_color: 0x8A9499
+                        bg_opa: COVER
 
-              # Internal Battery Percentage
               - label:
                   id: lbl_bat_text
-                  text: "0%"
+                  text: ""
                   text_font: roboto_14
                   text_color: 0xAAAAAA
+                  pad_left: 6
                   pad_right: 20
-                  height: 50
 
               # HA Status Icon
               - label:
@@ -77,7 +113,6 @@ widgets:
                   text_font: icons_20
                   text_color: 0x00FF00
                   pad_right: 20
-                  height: 50
               
               # WiFi Strength Icon
               - label:
@@ -86,89 +121,50 @@ widgets:
                   text_font: icons_20
                   text_color: 0xFFFFFF
                   pad_right: 20
-                  height: 50
               
-              # Outside Temperature
+              # Header sensor (entity chosen in the web editor)
               - label:
                   id: lbl_top_temp
-                  text: "--.-°C"
+                  text: ""
                   text_font: roboto_14
                   text_color: 0xAAAAAA
-                  height: 50
+                  on_boot:
+                    then:
+                      - lambda: 'panel_cards::bind_header(id(lbl_top_temp));'
 
-  # Footer (Navigation)
-  - buttonmatrix:
-          id: top_bar_footer
-          align: bottom_mid
-          styles: footer_style
-          pad_all: 0
-          outline_width: 0
-          items:
+  # Footer: page buttons are generated from the "Panel Pages" setting by
+  # panel_cards.h; the sleep button on the right is fixed.
+  - obj:
+      id: nav_bar
+      align: BOTTOM_MID
+      styles: footer_style
+      layout: { type: flex, flex_flow: ROW, flex_align_cross: CENTER }
+      widgets:
+        - obj:
+            id: nav_pages
+            height: 100%
+            flex_grow: 1
+            bg_opa: TRANSP
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            scrollbar_mode: "OFF"
+            on_boot:
+              then:
+                - lambda: 'panel_cards::bind_nav(id(nav_pages), id(mdi_36)->get_lv_font(), id(roboto_22)->get_lv_font());'
+        - button:
+            id: nav_sleep_btn
+            width: 80
             styles: btn_nav_style
-            checked:
-              bg_color: 0x103E5C
-              bg_opa: 100%
-              border_width: 2
-              border_color: 0x00FF00
-          rows:
-            - buttons:
-              - id: page_watch_sw
-                text: "\U000F0425"
-                on_press:
-                  then:
-                    - lvgl.page.show: page_watch
-                    - lambda: |-
-                        id(idle_counter) = 0;
-                        auto call = id(display_backlight).make_call();
-                        call.set_brightness(0.03); // Мінімальна яскравість (нічний режим)
-                        call.perform();
-              - id: page_dash_sw
-                text: "\U000F12A9"
-                on_press:
-                  then:
-                    lvgl.page.show: page_dash
-              - id: page_lights_sw
-                text: "\U000F1802"
-                on_press:
-                  then:
-                    lvgl.page.show: page_lights
-              - id: page_temp_sw
-                text: "\U000F050F"
-                on_press:
-                  then:
-                    lvgl.page.show: page_temp
-              - id: page_solar_sw
-                text: "\U000F1903"
-                on_press:
-                  then:
-                    lvgl.page.show: page_solar
-              - id: page_media_sw
-                text: "\U000F075A"
-                on_press:
-                  then:
-                    lvgl.page.show: page_media
-              - id: page_settings_sw
-                text: "\U000F0493"
-                on_press:
-                  then:
-                    lvgl.page.show: page_settings
+            widgets:
+              - label: { text: "\U000F0425", align: CENTER, text_font: mdi_20 }
+            on_click:
+              then:
+                - lambda: |-
+                    // Instant "night mode": dim now, wake on the next touch.
+                    id(idle_counter) = 0;
+                    id(display_backlight).make_call().set_brightness(0.03).perform();
 
-              - id: page_prev
-                text: "\U000F0141"
-                on_press:
-                  then:
-                    lvgl.page.previous:
-              - id: page_home
-                text: "\U000F02DC"
-                on_press:
-                  then:
-                    lvgl.page.show: page_dash
-              - id: page_next
-                text: "\U000F0142"
-                on_press:
-                  then:
-                    lvgl.page.next:
-  
   # Boot Screen (Initially Visible)
   - obj:
         id: boot_screen

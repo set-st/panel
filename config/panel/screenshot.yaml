@@ -1,0 +1,13 @@
+# GET http://<device>/screenshot.bmp returns what the screen shows right now
+# (see screenshot.h). Needs web_server and PSRAM; not used by the simulator.
+esphome:
+  build_flags:
+    - -DLV_USE_SNAPSHOT=1
+  includes:
+    - config/panel/screenshot.h
+
+interval:
+  - interval: 50ms
+    then:
+      - lambda: 'screenshot::poll();'  # also registers the handler on first run
+

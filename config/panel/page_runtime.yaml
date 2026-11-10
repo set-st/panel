@@ -1,0 +1,83 @@
+# The only content page. Title, cards and their sizes come from panel_cards.h;
+# this file just provides 24 card slots.
+id: page_runtime
+widgets:
+  - obj:
+      width: 100%
+      styles: page_bg_style
+      pad_all: 12
+      layout: { type: flex, flex_flow: COLUMN, pad_row: 8 }
+      widgets:
+        - obj:
+            width: 100%
+            height: 44
+            bg_opa: TRANSP
+            border_width: 0
+            pad_all: 0
+            scrollbar_mode: "OFF"
+            layout: { type: flex, flex_flow: ROW, flex_align_cross: CENTER }
+            widgets:
+              - button:
+                  id: runtime_back_btn
+                  hidden: true
+                  width: 80
+                  height: 40
+                  styles: btn_centered_style
+                  widgets:
+                    - label: { text: "\U000F0141", align: CENTER, text_font: mdi_20 }
+                  on_click:
+                    then:
+                      - lambda: 'panel_cards::go_back();'
+              - label:
+                  id: runtime_page_title
+                  text: ""
+                  text_font: roboto_22
+                  text_color: 0xFFFFFF
+                  pad_left: 12
+        - label:
+            id: runtime_empty_hint
+            hidden: true
+            width: 100%
+            text: "На цій сторінці ще немає карток. Відкрийте IP панелі в браузері та натисніть «Налаштувати панель»."
+            text_font: roboto_22
+            text_color: 0x888888
+        - obj:
+            id: runtime_grid
+            width: 100%
+            flex_grow: 1
+            bg_opa: TRANSP
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            scrollbar_mode: AUTO
+            layout: { type: flex, flex_flow: ROW_WRAP, flex_align_main: START, pad_row: 10, pad_column: 10 }
+            on_boot:
+              then:
+                - lambda: |-
+                    panel_cards::set_small_font(id(roboto_14)->get_lv_font());
+                    panel_cards::bind_page(id(runtime_page_title), id(runtime_back_btn), id(runtime_empty_hint), id(runtime_grid));
+            widgets:
+              - !include { file: card_slot.yaml, vars: { n: "1" } }
+              - !include { file: card_slot.yaml, vars: { n: "2" } }
+              - !include { file: card_slot.yaml, vars: { n: "3" } }
+              - !include { file: card_slot.yaml, vars: { n: "4" } }
+              - !include { file: card_slot.yaml, vars: { n: "5" } }
+              - !include { file: card_slot.yaml, vars: { n: "6" } }
+              - !include { file: card_slot.yaml, vars: { n: "7" } }
+              - !include { file: card_slot.yaml, vars: { n: "8" } }
+              - !include { file: card_slot.yaml, vars: { n: "9" } }
+              - !include { file: card_slot.yaml, vars: { n: "10" } }
+              - !include { file: card_slot.yaml, vars: { n: "11" } }
+              - !include { file: card_slot.yaml, vars: { n: "12" } }
+              - !include { file: card_slot.yaml, vars: { n: "13" } }
+              - !include { file: card_slot.yaml, vars: { n: "14" } }
+              - !include { file: card_slot.yaml, vars: { n: "15" } }
+              - !include { file: card_slot.yaml, vars: { n: "16" } }
+              - !include { file: card_slot.yaml, vars: { n: "17" } }
+              - !include { file: card_slot.yaml, vars: { n: "18" } }
+              - !include { file: card_slot.yaml, vars: { n: "19" } }
+              - !include { file: card_slot.yaml, vars: { n: "20" } }
+              - !include { file: card_slot.yaml, vars: { n: "21" } }
+              - !include { file: card_slot.yaml, vars: { n: "22" } }
+              - !include { file: card_slot.yaml, vars: { n: "23" } }
+              - !include { file: card_slot.yaml, vars: { n: "24" } }

@@ -1,0 +1,18 @@
+# One "Panel Card N" text entity. Included once per slot from runtime_cards.yaml
+# with vars: { n: "N" }. Format: type;entity;label;icon;page (see panel_cards.h).
+text:
+  - platform: template
+    name: "Panel Card ${n}"
+    id: panel_card_${n}
+    mode: text
+    min_length: 0
+    max_length: 255
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    entity_category: config
+    disabled_by_default: true
+    icon: "mdi:card-outline"
+    on_value:
+      then:
+        - lambda: 'panel_cards::set_config(${n}, x);'

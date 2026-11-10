@@ -1,0 +1,92 @@
+# Runtime-configured pages and cards (espcontrol-style). Shared by
+# panel-s3.yaml and simulator.yaml. Everything is edited from the device web
+# page and stored in the text entities below; the firmware talks to Home
+# Assistant itself (see panel_cards.h).
+esphome:
+  build_flags:
+    - -DLV_USE_CHART=1  # chart cards (created from C++, not from YAML)
+  includes:
+    - config/panel/panel_icons.h
+    - config/panel/panel_cards.h
+
+api:
+  # Needed to subscribe to arbitrary HA entities and to call HA actions from C++.
+  # In Home Assistant also enable "Allow the device to perform Home Assistant
+  # actions" in the ESPHome device options.
+  homeassistant_states: true
+  homeassistant_services: true
+
+text:
+  - platform: template
+    name: "Panel Pages"
+    id: panel_pages
+    mode: text
+    min_length: 0
+    max_length: 255
+    optimistic: true
+    restore_value: true
+    initial_value: "Головна|home|1"
+    entity_category: config
+    disabled_by_default: true
+    icon: "mdi:book-open-page-variant"
+    on_value:
+      then:
+        - lambda: 'panel_cards::set_pages(x);'
+
+  - platform: template
+    name: "Panel Header Sensor"
+    id: panel_header_sensor
+    mode: text
+    min_length: 0
+    max_length: 255
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    entity_category: config
+    disabled_by_default: true
+    icon: "mdi:thermometer"
+    on_value:
+      then:
+        - lambda: 'panel_cards::set_header_entity(x);'
+
+  - platform: template
+    name: "Panel Alarm Sensor"
+    id: panel_alarm_sensor
+    mode: text
+    min_length: 0
+    max_length: 255
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    entity_category: config
+    disabled_by_default: true
+    icon: "mdi:alarm-light"
+    on_value:
+      then:
+        - lambda: 'panel_cards::set_alarm_entity(x);'
+
+packages:
+  card_1: !include { file: card_config.yaml, vars: { n: "1" } }
+  card_2: !include { file: card_config.yaml, vars: { n: "2" } }
+  card_3: !include { file: card_config.yaml, vars: { n: "3" } }
+  card_4: !include { file: card_config.yaml, vars: { n: "4" } }
+  card_5: !include { file: card_config.yaml, vars: { n: "5" } }
+  card_6: !include { file: card_config.yaml, vars: { n: "6" } }
+  card_7: !include { file: card_config.yaml, vars: { n: "7" } }
+  card_8: !include { file: card_config.yaml, vars: { n: "8" } }
+  card_9: !include { file: card_config.yaml, vars: { n: "9" } }
+  card_10: !include { file: card_config.yaml, vars: { n: "10" } }
+  card_11: !include { file: card_config.yaml, vars: { n: "11" } }
+  card_12: !include { file: card_config.yaml, vars: { n: "12" } }
+  card_13: !include { file: card_config.yaml, vars: { n: "13" } }
+  card_14: !include { file: card_config.yaml, vars: { n: "14" } }
+  card_15: !include { file: card_config.yaml, vars: { n: "15" } }
+  card_16: !include { file: card_config.yaml, vars: { n: "16" } }
+  card_17: !include { file: card_config.yaml, vars: { n: "17" } }
+  card_18: !include { file: card_config.yaml, vars: { n: "18" } }
+  card_19: !include { file: card_config.yaml, vars: { n: "19" } }
+  card_20: !include { file: card_config.yaml, vars: { n: "20" } }
+  card_21: !include { file: card_config.yaml, vars: { n: "21" } }
+  card_22: !include { file: card_config.yaml, vars: { n: "22" } }
+  card_23: !include { file: card_config.yaml, vars: { n: "23" } }
+  card_24: !include { file: card_config.yaml, vars: { n: "24" } }

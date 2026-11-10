@@ -4,6 +4,22 @@ An intelligent smart home control panel based on **ESPHome** and **LVGL**. This 
 
 ![Smart Home Control Panel](esp32-s3-touch-lcd-7b.jpg)
 
+## 📸 Screenshots
+
+**Panel screen** — taken from the device itself (`http://<panel-ip>/screenshot.bmp`): air-alarm card, chart cards drawn behind their values, status bar with the battery indicator.
+
+![Panel screen](docs/screenshots/panel-home.png)
+
+**Web editor** — opened from the panel's IP address (shown here with demo data from `tools/configurator_preview.html`).
+
+| | |
+|---|---|
+| ![Pages and cards](docs/screenshots/admin-overview.png) Pages and cards | ![Icon picker](docs/screenshots/admin-icons.png) Icon picker (520 icons, search) |
+| ![Entity search](docs/screenshots/admin-entity-search.png) Home Assistant entity search | ![Chart card](docs/screenshots/admin-chart-card.png) Chart card with period |
+| ![Panel settings](docs/screenshots/admin-settings.png) Panel settings: screen, status bar, air alarm, device | |
+
+To refresh the editor screenshots: open `tools/configurator_preview.html#icons` (also `#search`, `#chart`, `#settings`) in a browser. To grab the panel screen: `curl -o screen.bmp http://<panel-ip>/screenshot.bmp`.
+
 ## 🛠 Technical Specifications
 
 *   **Controller**: ESP32-S3 (Dual-core, 240MHz).
@@ -13,12 +29,9 @@ An intelligent smart home control panel based on **ESPHome** and **LVGL**. This 
 *   **Peripherals**: Built-in **CH32V003** port expander (manages display reset, touchscreen reset, and backlight brightness).
 *   **Power**: Li-ion battery support with voltage monitoring via the expander's built-in ADC.
 
-## 📡 Integrations
+## 📡 Home Assistant
 
-*   **Home Assistant**: Full sensor synchronization (climate, power consumption, lighting).
-*   **MUST Inverter**: Monitoring solar generation and battery status.
-*   **Smart MAIC**: Three-phase power monitoring with local total power/current calculation on the ESP32.
-*   **Security**: Integration with the Ukrainian air raid alert system.
+Nothing about your home is hard-coded in the firmware. Pages, the bottom menu and every card are configured from the panel's web page (espcontrol-style), and the panel talks to Home Assistant directly over the native ESPHome API.
 
 ## 📌 Pinout
 
@@ -44,40 +57,68 @@ An intelligent smart home control panel based on **ESPHome** and **LVGL**. This 
 
 ## 🏗 Project Architecture
 
-The project has a modular structure for easy maintenance:
-*   `panel-s3.yaml` — Main configuration file (hardware, sensors, system logic).
-*   `gui.yaml` — LVGL style definitions and layer structure.
-*   `base_logic.yaml` — Shared resources (fonts, Material Design icons).
-*   `config/panel/` — A set of YAML files for each interface page.
-*   `simulator.yaml` — Configuration for running the UI on a PC via SDL.
+*   `panel-s3.yaml` — hardware (display, touch, CH32V003 expander, backlight, battery, antiburn).
+*   `simulator.yaml` — the same UI on a PC via SDL.
+*   `base_logic.yaml` — fonts and icons.
+*   `gui.yaml` — LVGL styles; the only page is `page_runtime`, plus the boot screen overlay.
+*   `config/panel/top_layer.yaml` — status bar, generated bottom menu, boot screen.
+*   `config/panel/system.yaml` — brightness, sleep timeout, clock and status icons (shared).
+*   `config/panel/runtime_cards.yaml` — text entities that store pages and cards (shared).
+*   `config/panel/panel_cards.h` — renders pages/cards/menu, subscribes to HA, calls HA actions.
+*   `config/panel/configurator.js` / `.css` — the web editor.
 
 ## 💡 Implementation Details (Knowledge Base)
 
-### 1. Touchscreen I2C Address Fix (GT911)
-The GT911 controller selects its I2C address when released from Reset based on the state of the INT pin. To prevent the touchscreen from "dropping out" after flashing, a hard reset sequence is implemented in the `on_boot` block:
-```cpp
-gpio_set_level(GPIO_NUM_4, 0); // Pull INT to Ground
-vTaskDelay(pdMS_TO_TICKS(50)); // Wait for initialization
+### Pages and cards from the web page
+
+Open the panel's IP address in a browser and press **Налаштувати панель**:
+
+* **Pages** — up to 8. Each has a title, an icon and a "show in bottom menu" switch; hidden pages are reached through "go to page" cards. The first page is the start page. Pages can be reordered and deleted (their cards go with them).
+* **Cards** — up to 24 in total, on any page. Types:
+  * **Перемикач** — toggles `light.*`, `switch.*`, `fan.*`, `input_boolean.*`, `cover.*`, `lock.*`; highlighted when on.
+  * **Датчик** — shows the state with its unit.
+  * **Дія** — runs a `scene`, `script`, `automation`, `button` or `input_button`.
+  * **Перехід на сторінку** — opens another page; the back button returns.
+  * **Повітряна тривога** — Ukraine Alarm status: green «НЕБО ЧИСТЕ», yellow for drones only (Air (yellow)), red for ballistics (Air (red)), a general air alarm or other threats; lists the active threats.
+* **Sizes** — 1×1, 2×1, 2×2 or full width. The grid adapts to the screen: 4 columns on wide displays (3 or 2 on narrower ones), 3 rows visible, scrolls if there are more.
+* **Налаштування панелі** — brightness, sleep timeout, anti-burn-in now, status-bar sensor, air-alarm sensor, Wi‑Fi / battery info, restart.
+
+### Air alarm
+
+Set the region's Ukraine Alarm **Air** sensor (`binary_sensor.<region>_air`) in *Налаштування панелі → Повітряна тривога*. The other sensors of the region (`_air_red`, `_air_yellow`, `_artillery`, `_urban_fights`, `_chemical`, `_nuclear`, `_unknown`) are derived from it. While any of them is on, the page background turns red (dark yellow if only drones), the screen wakes up and the anti-burn-in snow stops. To test, set e.g. `binary_sensor.<region>_air_yellow` to `on` in HA *Developer tools → States*.
+
+The timezone is not a panel setting: Home Assistant 2026.3+ sends its own timezone to the device; the YAML value is the fallback.
+
+Changes are stored on the device and show up on screen immediately, no reboot.
+
+Storage (all `text` entities, category *config*, hidden in HA by default):
+* `Panel Pages` — `title|icon|nav;title|icon|nav;…`
+* `Panel Card N` — `type;entity;label;icon;page;size`
+* `Panel Header Sensor` — entity id
+* `Panel Alarm Sensor` — entity id of the region's Ukraine Alarm "Air" sensor
+
+**Required once in Home Assistant:** *Settings → Devices & services → ESPHome → (this panel) → Configure →* enable **Allow the device to perform Home Assistant actions**. Without it toggles and actions are ignored.
+
+Entity fields in the web editor search Home Assistant entities by name or entity ID, filtered by card type. Open "Home Assistant (пошук сутностей)" in the editor and enter the HA address and a long-lived access token (HA → Profile → Security). The browser fetches the entity list straight from the HA WebSocket API; the token stays in that browser's localStorage and is never stored on the panel. `tools/configurator_preview.html` opens the editor offline with a fake device and fake HA.
+
+Icons are picked visually in the web editor (grouped grid with search). The set of icons available on the panel is listed in `config/panel/icons.txt` (MDI names, `## Group` lines start a picker group). After editing it run:
+
 ```
-This guarantees the address `0x5D`.
+pip install fonttools
+python3 tools/gen_icons.py
+```
 
-### 2. Brightness Synchronization
-Display brightness is controlled via `float` (0.0–1.0), while the LVGL slider uses `int` (0–100). For correct display after reboot, a multiplier of 100 is used in the slider's value lambda and forced synchronization occurs in the settings page's `on_show` trigger.
+It regenerates `config/panel/icon_glyphs.yaml` (glyphs of the `mdi_36` font), `config/panel/panel_icons.h` (name → glyph table for the firmware), the icon list in `configurator.js` and the preview font embedded in `configurator.css`. Each icon costs ~0.5 KB of flash. `font_viewer.html` can still be used to browse every glyph in the font files.
 
-### 3. Local Power Calculation
-To minimize latency and increase accuracy, the summation of three-phase power consumption (MAIC) occurs locally on the ESP32 in `template` sensors with robust `NaN` value handling.
+The web server uses plain local HTTP without auth. Keep the panel on a trusted LAN.
 
-### 4. Navigation Sync & Visual Feedback
-The bottom navigation bar uses a `buttonmatrix`. To provide visual feedback, the `CHECKED` state is styled with a subtle blue background (`0x103E5C`) and a `2px` green top border. Since ESPHome doesn't natively sync `buttonmatrix` states with active pages, a custom C++ block in the 1s interval handles this:
-*   Sets buttons to `CHECKABLE` on boot.
-*   Updates the `CHECKED` flag based on `id(page_xxx).is_showing()`.
+The simulator has no web server (not supported on the host platform); set its text entities through Home Assistant.
 
-### 5. "Power Off" (Sleep) Shortcut
-The clock icon in the footer acts as an instant sleep button. When pressed, it:
-1.  Switches to the `page_watch`.
-2.  Forces `idle_counter` to `0`.
-3.  Immediately sets backlight brightness to `3%` (night mode).
-This bypasses the standard idle timeout and provides a quick way to dim the display.
+### 1. Touchscreen I2C address and start-up (GT911)
+The GT911 selects its I2C address (0x5D with INT low) when released from reset. The reset sequence, address selection and retries are handled by the local driver copy in `components/gt911` — see [Touchscreen (GT911) start-up](#touchscreen-gt911-start-up).
+
+### 2. Brightness and sleep
+`Screen Brightness` and `Screen Sleep Timeout` number entities (web page / HA) replace the old settings page. After the timeout the backlight dims to 3%; the touch that wakes the screen is swallowed so it does not press a card. The power button at the right of the bottom menu dims the screen immediately.
 
 ## 🚀 Build and Flash
 
@@ -90,3 +131,13 @@ To run the simulator (requires SDL2 library installed):
 ```bash
 esphome run simulator.yaml
 ```
+
+### Touchscreen (GT911) start-up
+
+On this board the GT911 RESET line goes through the CH32V003 I2C IO expander and the first I2C transfer to the controller occasionally fails. The stock ESPHome driver makes a single attempt and then marks the touchscreen FAILED for good (no touch until the next reboot). `components/gt911` is a local copy of the ESPHome 2026.9 driver (enabled in `external_components` of `panel-s3.yaml`) that:
+
+* uses the datasheet reset timing (RESET low 10 ms → RESET high → hold INT 10 ms → release INT → wait 60 ms → first I2C transfer);
+* keeps the configured address 0x5D instead of permanently switching to 0x14 after a failed probe;
+* retries reset + probe up to 5 times.
+
+The result is printed in the config dump (`esphome logs` → `GT911 Touchscreen: … Setup: OK after N attempt(s)`). When upgrading ESPHome, compare the copy with the new upstream driver.

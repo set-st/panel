@@ -1,0 +1,39 @@
+# One card widget on page_runtime. Included once per slot with vars: { n: "N" }.
+# Size and visibility are set at runtime by panel_cards.h.
+button:
+  id: rc_${n}
+  hidden: true
+  width: 200
+  height: 120
+  styles: card_style
+  pad_all: 14
+  checked:
+    bg_color: 0x17320E
+    border_color: 0x2E7D32
+  disabled:
+    opa: 45%
+  widgets:
+    - label:
+        id: rc_${n}_icon
+        text: ""
+        text_font: mdi_36
+        align: TOP_LEFT
+    - label:
+        id: rc_${n}_value
+        text: ""
+        text_font: roboto_22
+        text_color: 0xAAAAAA
+        align: TOP_RIGHT
+    - label:
+        id: rc_${n}_label
+        text: ""
+        text_font: roboto_22
+        align: BOTTOM_LEFT
+        width: 100%
+        long_mode: DOT
+  on_boot:
+    then:
+      - lambda: 'panel_cards::bind(${n}, id(rc_${n}), id(rc_${n}_icon), id(rc_${n}_label), id(rc_${n}_value));'
+  on_click:
+    then:
+      - lambda: 'panel_cards::on_click(${n});'

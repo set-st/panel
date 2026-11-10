@@ -144,11 +144,6 @@ lvgl:
   top_layer: !include config/panel/top_layer.yaml
 
   pages:
-    # - !include config/panel/page_boot.yaml
-    - !include config/panel/page_watch.yaml
-    - !include config/panel/page_dash.yaml
-    - !include config/panel/page_lights.yaml
-    - !include config/panel/page_media.yaml
-    - !include config/panel/page_temp.yaml
-    - !include config/panel/page_solar.yaml
-    - !include config/panel/page_settings.yaml
+    # page_boot.yaml is kept for reference; the boot screen actually shown is
+    # the boot_screen overlay in top_layer.yaml.
+    - !include config/panel/page_runtime.yaml

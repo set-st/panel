@@ -1,0 +1,110 @@
+# Screen behaviour shared by panel-s3.yaml and simulator.yaml: brightness,
+# sleep timeout, status bar (clock, HA, WiFi, battery). Brightness and timeout
+# replace the old settings page and are changed from the web page / HA.
+#
+# Each hardware file must provide: display_backlight (light), sntp_time (time),
+# wifi_rssi (sensor), internal_bat_pct (sensor) and wake the screen on touch.
+# The battery indicator (bat_fill, lbl_bat_text) lives in top_layer.yaml.
+
+globals:
+  - id: boot_completed
+    type: bool
+    initial_value: 'false'
+  - id: current_brightness
+    type: float
+    restore_value: yes
+    initial_value: '0.8'
+  - id: idle_timeout_s
+    type: int
+    restore_value: yes
+    initial_value: '60'
+  - id: idle_counter
+    type: int
+    initial_value: '60'
+
+number:
+  - platform: template
+    name: "Screen Brightness"
+    id: screen_brightness
+    icon: "mdi:brightness-6"
+    entity_category: config
+    unit_of_measurement: "%"
+    min_value: 5
+    max_value: 100
+    step: 1
+    mode: slider
+    update_interval: 5s
+    lambda: 'return id(current_brightness) * 100.0f;'
+    set_action:
+      - lambda: |-
+          id(current_brightness) = x / 100.0f;
+          if (id(idle_counter) > 0) {
+            id(display_backlight).make_call().set_brightness(id(current_brightness)).perform();
+          }
+
+  - platform: template
+    name: "Screen Sleep Timeout"
+    id: screen_sleep_timeout
+    icon: "mdi:timer-sand"
+    entity_category: config
+    unit_of_measurement: "s"
+    min_value: 10
+    max_value: 3600
+    step: 10
+    mode: box
+    update_interval: 5s
+    lambda: 'return id(idle_timeout_s);'
+    set_action:
+      - lambda: |-
+          id(idle_timeout_s) = (int) x;
+          if (id(idle_counter) > id(idle_timeout_s)) id(idle_counter) = id(idle_timeout_s);
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
+            lv_label_set_text(id(top_date_label), now.strftime("%d.%m.%Y").c_str());
+          }
+
+          panel_cards::tick();  // chart history
+
+          // Wake the screen when an air alarm starts or gets worse.
+          static int last_alarm = 0;
+          int alarm = panel_cards::alarm_level();
+          if (alarm > last_alarm && alarm > 0) {
+            id(display_backlight).make_call().set_brightness(id(current_brightness)).perform();
+            id(idle_counter) = id(idle_timeout_s);
+          }
+          last_alarm = alarm;
+
+          // Dim the screen after the sleep timeout; a touch wakes it up.
+          if (id(idle_counter) > 0) {
+            id(idle_counter)--;
+            if (id(idle_counter) == 0) {
+              id(display_backlight).make_call().set_brightness(0.03).perform();
+            }
+          }
+
+          bool ha_ok = api::global_api_server != nullptr && api::global_api_server->is_connected();
+          lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(ha_ok ? 0x00FF00 : 0xFF0000), 0);
+
+          if (id(wifi_rssi).has_state() && !std::isnan(id(wifi_rssi).state)) {
+            float rssi = id(wifi_rssi).state;
+            int level = (rssi >= -55.0) ? 4 : (rssi >= -65.0) ? 3 : (rssi >= -75.0) ? 2 : (rssi >= -85.0) ? 1 : 0;
+            const char *icons[] = {"\U0000E934", "\U0000E931", "\U0000E932", "\U0000E933", "\U0000E934"};
+            lv_label_set_text(id(lbl_wifi_signal), icons[level]);
+          }
+
+          if (!std::isnan(id(internal_bat_pct).state)) {
+            int pct = (int) clamp((float) id(internal_bat_pct).state, 0.0f, 100.0f);
+            uint32_t color = pct >= 45 ? 0x34C759 : pct >= 20 ? 0xFFCC00 : 0xFF3B30;
+            // Keep a sliver visible at 0-5% so the battery never looks empty-white.
+            lv_obj_set_width(id(bat_fill), lv_pct(pct < 6 ? 6 : pct));
+            lv_obj_set_style_bg_color(id(bat_fill), lv_color_hex(color), 0);
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%d%%", pct);
+            lv_label_set_text(id(lbl_bat_text), buf);
+          }

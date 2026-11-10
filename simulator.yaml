@@ -1,7 +1,13 @@
-# simulator.yaml
+# simulator.yaml — runs the UI on a PC via SDL (esphome run simulator.yaml).
+# ESPHome has no web_server on the host platform, so the web editor is not
+# available here; set the "Panel Pages" / "Panel Card N" text entities through
+# Home Assistant (add the simulator as an ESPHome device) or use initial values.
 esphome:
   name: panel-simulator
   on_boot:
+    - globals.set:
+        id: boot_completed
+        value: 'true'
     - delay: 5s
     - lvgl.widget.hide: boot_screen
 
@@ -12,12 +18,13 @@ api:
 logger:
   level: DEBUG
 
-# ВАЖНО: сначала шрифты, потом интерфейс
+# Fonts first, then the interface
 packages:
   logic: !include base_logic.yaml
   gui: !include gui.yaml
+  system: !include config/panel/system.yaml
+  runtime_cards: !include config/panel/runtime_cards.yaml
 
-# Виртуальный дисплей
 display:
   - platform: sdl
     id: my_display
@@ -31,31 +38,16 @@ touchscreen:
       then:
         - lambda: |-
             if (id(idle_counter) == 0) {
-              auto call = id(display_backlight).make_call();
-              call.set_brightness(id(current_brightness));
-              call.perform();
+              panel_cards::suppress_clicks(700);
+              id(display_backlight).make_call().set_brightness(id(current_brightness)).perform();
             }
             id(idle_counter) = id(idle_timeout_s);
 
-# Заглушки для глобальных переменных
-globals:
-  - id: screen_cycling_enabled
-    type: bool
-    initial_value: 'true'
-  - id: boot_completed
-    type: bool
-    initial_value: 'true'
-  - id: current_brightness
-    type: float
-    initial_value: '0.8'
-  - id: idle_timeout_s
-    type: int
-    initial_value: '60'
-  - id: idle_counter
-    type: int
-    initial_value: '60'
+lvgl:
+  displays: [my_display]
+  touchscreens: [my_touchscreen]
 
-# Заглушки для сенсоров
+# Hardware stubs
 sensor:
   - platform: template
     id: wifi_rssi
@@ -63,165 +55,6 @@ sensor:
   - platform: template
     id: internal_bat_pct
     lambda: "return 85.0;"
-  - platform: template
-    id: outside_temp
-    lambda: "return 12.5;"
-  - platform: template
-    id: house_temp
-    lambda: "return 22.0;"
-  - platform: template
-    id: floor_temp
-    lambda: "return 21.5;"
-  - platform: template
-    id: bedroom_temp
-    lambda: "return 22.2;"
-  - platform: template
-    id: techroom_temp
-    lambda: "return 19.0;"
-  - platform: template
-    id: hall_temp
-    lambda: "return 21.0;"
-  - platform: template
-    id: kitchen_temp
-    lambda: "return 23.0;"
-  - platform: template
-    id: bathroom_temp
-    lambda: "return 24.0;"
-  - platform: template
-    id: maic_v1
-    lambda: "return 230.0;"
-  - platform: template
-    id: maic_v2
-    lambda: "return 231.0;"
-  - platform: template
-    id: maic_v3
-    lambda: "return 229.0;"
-  - platform: template
-    id: maic_p1
-    lambda: "return 500.0;"
-  - platform: template
-    id: maic_p2
-    lambda: "return 300.0;"
-  - platform: template
-    id: maic_p3
-    lambda: "return 1200.0;"
-  - platform: template
-    id: maic_c1
-    lambda: "return 2.2;"
-  - platform: template
-    id: maic_c2
-    lambda: "return 1.3;"
-  - platform: template
-    id: maic_c3
-    lambda: "return 5.4;"
-  - platform: template
-    id: house_total_p
-    lambda: |-
-      float p1 = id(maic_p1).state;
-      float p2 = id(maic_p2).state;
-      float p3 = id(maic_p3).state;
-      float total = 0;
-      if (!std::isnan(p1)) total += p1;
-      if (!std::isnan(p2)) total += p2;
-      if (!std::isnan(p3)) total += p3;
-      return total;
-  - platform: template
-    id: house_total_c
-    lambda: |-
-      float c1 = id(maic_c1).state;
-      float c2 = id(maic_c2).state;
-      float c3 = id(maic_c3).state;
-      float total = 0;
-      if (!std::isnan(c1)) total += c1;
-      if (!std::isnan(c2)) total += c2;
-      if (!std::isnan(c3)) total += c3;
-      return total;
-  - platform: template
-    id: must_pv_voltage
-    lambda: "return 150.0;"
-  - platform: template
-    id: must_grid_voltage
-    lambda: "return 230.0;"
-  - platform: template
-    id: must_battery_voltage
-    lambda: "return 54.2;"
-  - platform: template
-    id: mass_volume
-    lambda: "return 0.5;"
-  - platform: template
-    id: player_1_volume
-    lambda: "return 0.3;"
-  - platform: template
-    id: player_2_volume
-    lambda: "return 0.4;"
-
-binary_sensor:
-  - platform: template
-    id: air_alarm
-    lambda: "return false;"
-
-switch:
-  - platform: template
-    id: switch_external_lights
-    optimistic: true
-  - platform: template
-    id: switch_kitchen_lights
-    optimistic: true
-  - platform: template
-    id: switch_bedroom
-    optimistic: true
-  - platform: template
-    id: switch_bathroom
-    optimistic: true
-  - platform: template
-    id: switch_hall
-    optimistic: true
-
-button:
-  - platform: template
-    id: reboot_btn
-  - platform: template
-    id: btn_backlight_switch
-
-text_sensor:
-  - platform: template
-    id: wifi_ip_address
-    lambda: 'return {"192.168.1.100"};'
-
-  - platform: template
-    id: selected_player_entity
-    lambda: 'return {"media_player.music_assistant"};'
-    update_interval: never
-
-  - platform: template
-    id: mass_title
-    lambda: 'return {"Song from Music Assistant"};'
-  - platform: template
-    id: mass_artist
-    lambda: 'return {"MA Artist"};'
-  - platform: template
-    id: mass_state
-    lambda: 'return {"playing"};'
-
-  - platform: template
-    id: player_1_title
-    lambda: 'return {"ESP32 Airplay Track"};'
-  - platform: template
-    id: player_1_artist
-    lambda: 'return {"Airplay Artist"};'
-  - platform: template
-    id: player_1_state
-    lambda: 'return {"idle"};'
-
-  - platform: template
-    id: player_2_title
-    lambda: 'return {"Squeezelite Track"};'
-  - platform: template
-    id: player_2_artist
-    lambda: 'return {"Squeezelite Artist"};'
-  - platform: template
-    id: player_2_state
-    lambda: 'return {"idle"};'
 
 output:
   - platform: template
@@ -237,230 +70,3 @@ light:
 time:
   - platform: host
     id: sntp_time
-
-# Логика обновления для симулятора
-interval:
-  - interval: 60s
-    then:
-      - if:
-          condition:
-            lambda: 'return id(screen_cycling_enabled) && id(idle_counter) == 0;'
-          then:
-            lvgl.page.next:
-  - interval: 1s
-    then:
-      - lambda: |-
-          // Проверяем, выполнена ли начальная синхронизация GUI
-          static bool gui_synced = false;
-          if (!gui_synced && id(boot_completed)) {
-              float saved_br = id(current_brightness);
-              
-              // 1. Устанавливаем положение ползунка (0-100)
-              lv_slider_set_value(id(dimmer_slider), (int)(saved_br * 100), LV_ANIM_OFF);
-              
-              // 2. Обновляем текст метки
-              static char tbuf[64];
-              snprintf(tbuf, sizeof(tbuf), "Яскравість дисплея: %d%%", (int)(saved_br * 100));
-              lv_label_set_text(id(dimmer_label), tbuf);
-              
-              // 3. Применяем яркость к подсветке физически
-              auto call = id(display_backlight).make_call();
-              call.set_brightness(saved_br);
-              call.perform();
-
-              gui_synced = true;
-          }
-
-          // Синхронізація активної кнопки у футері
-          static bool nav_init = false;
-          if (!nav_init && id(top_bar_footer) != nullptr) {
-              for (int i = 0; i < 7; i++) {
-                  lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKABLE);
-              }
-              lv_btnmatrix_set_one_checked(id(top_bar_footer)->obj, true);
-              nav_init = true;
-          }
-
-          int active_page_idx = -1;
-          if (id(page_watch).is_showing()) active_page_idx = 0;
-          else if (id(page_dash).is_showing()) active_page_idx = 1;
-          else if (id(page_lights).is_showing()) active_page_idx = 2;
-          else if (id(page_temp).is_showing()) active_page_idx = 3;
-          else if (id(page_solar).is_showing()) active_page_idx = 4;
-          else if (id(page_media).is_showing()) active_page_idx = 5;
-          else if (id(page_settings).is_showing()) active_page_idx = 6;
-
-          if (active_page_idx != -1 && id(top_bar_footer) != nullptr) {
-              for (int i = 0; i < 7; i++) {
-                  if (i == active_page_idx) {
-                      lv_btnmatrix_set_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKED);
-                  } else {
-                      lv_btnmatrix_clear_btn_ctrl(id(top_bar_footer)->obj, i, LV_BTNMATRIX_CTRL_CHECKED);
-                  }
-              }
-          }
-
-          auto now = id(sntp_time).now();
-          if (now.is_valid()) {
-            lv_label_set_text(id(top_time_label), now.strftime("%H:%M").c_str());
-            lv_label_set_text(id(big_watch_label), now.strftime("%H : %M").c_str());
-            lv_label_set_text(id(top_date_label), now.strftime("%d.%m.%Y").c_str());
-            lv_label_set_text(id(big_date_label), now.strftime("%d.%m.%Y").c_str());
-          }
-
-          if (id(idle_counter) > 0) {
-            id(idle_counter)--;
-            if (id(idle_counter) == 0) {
-              id(display_backlight).make_call().set_brightness(0.03).perform();
-            }
-          }
-
-          // Mock HA status for simulator
-          bool ha_ok = true; 
-          lv_obj_set_style_text_color(id(lbl_hastatus), lv_color_hex(ha_ok ? 0x00FF00 : 0xFF0000), 0);
-
-          if (id(wifi_rssi).has_state() && !std::isnan(id(wifi_rssi).state)) {
-              float rssi = id(wifi_rssi).state;
-              int level = (rssi >= -55.0) ? 4 : (rssi >= -65.0) ? 3 : (rssi >= -75.0) ? 2 : (rssi >= -85.0) ? 1 : 0;
-              const char* icons[] = {"\U0000E934", "\U0000E931", "\U0000E932", "\U0000E933", "\U0000E934"};
-              lv_label_set_text(id(lbl_wifi_signal), icons[level]);
-              static char t_buf[32];
-              sprintf(t_buf, "WiFi: %.1f dBm (%d)", rssi, level);
-              lv_label_set_text(id(sys_wifi_label), t_buf);
-          }
-
-          if (!std::isnan(id(house_temp).state)) {
-            static char t_buf[16];
-            sprintf(t_buf, "%.1f°C", id(house_temp).state);
-            lv_label_set_text(id(lbl_top_temp), t_buf);
-          }
-
-          if (!std::isnan(id(internal_bat_pct).state)) {
-              int pct = (int)id(internal_bat_pct).state;
-              const char* icon = "\U000F0083";
-              uint32_t color = 0xFF0000;
-              if (pct >= 95)      { icon = "\U000F0079"; color = 0x00FF00; }
-              else if (pct >= 80) { icon = "\U000F0082"; color = 0x00FF00; }
-              else if (pct >= 65) { icon = "\U000F0080"; color = 0x00FF00; }
-              else if (pct >= 45) { icon = "\U000F007E"; color = 0xFFFF00; }
-              else if (pct >= 25) { icon = "\U000F007C"; color = 0xFFFF00; }
-              else if (pct >= 10) { icon = "\U000F007A"; color = 0xFF0000; }
-              else                { icon = "\U000F0083"; color = 0xFF0000; }
-
-              lv_label_set_text(id(lbl_bat_icon), icon);
-              lv_obj_set_style_text_color(id(lbl_bat_icon), lv_color_hex(color), 0);
-              static char buf[8]; 
-              snprintf(buf, sizeof(buf), "%d%%", pct);
-              lv_label_set_text(id(lbl_bat_text), buf);
-          }
-          
-          if (!std::isnan(id(house_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(house_temp).state);
-            lv_label_set_text(id(dash_temp_label), buf);
-            lv_label_set_text(id(temp_hall_label), buf);
-          }
-          if (!std::isnan(id(floor_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(floor_temp).state);
-            lv_label_set_text(id(second_floor_temp_label), buf);
-            lv_label_set_text(id(second_floor_temp_label2), buf);
-          }
-          if (!std::isnan(id(bedroom_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(bedroom_temp).state);
-            lv_label_set_text(id(temp_bedroom_label), buf);
-          }
-          if (!std::isnan(id(techroom_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(techroom_temp).state);
-            lv_label_set_text(id(temp_techroom_label), buf);
-          }
-          if (!std::isnan(id(outside_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(outside_temp).state);
-            lv_label_set_text(id(dash_outside_temp_label), buf);
-          }
-          if (!std::isnan(id(kitchen_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(kitchen_temp).state);
-            lv_label_set_text(id(temp_kitchen_label), buf);
-          }
-          if (!std::isnan(id(bathroom_temp).state)) {
-            static char buf[16]; sprintf(buf, "%.1f°", id(bathroom_temp).state);
-            lv_label_set_text(id(temp_bathroom_label), buf);
-          }
-
-          static char sbuf[32];
-          if (!std::isnan(id(must_pv_voltage).state)) { sprintf(sbuf, "%.1f V", id(must_pv_voltage).state); lv_label_set_text(id(solar_voltage), sbuf); }
-          if (!std::isnan(id(must_grid_voltage).state)) { sprintf(sbuf, "%.0f V", id(must_grid_voltage).state); lv_label_set_text(id(solar_grid_voltage_f1), sbuf); }
-          if (!std::isnan(id(must_battery_voltage).state)) { sprintf(sbuf, "%.1f V", id(must_battery_voltage).state); lv_label_set_text(id(solar_battery_voltage), sbuf); }
-          if (!std::isnan(id(maic_v1).state)) { sprintf(sbuf, "F1: %.0f V", id(maic_v1).state); lv_label_set_text(id(power_voltage_f1), sbuf); }
-          if (!std::isnan(id(maic_v2).state)) { sprintf(sbuf, "F2: %.0f V", id(maic_v2).state); lv_label_set_text(id(power_voltage_f2), sbuf); }
-          if (!std::isnan(id(maic_v3).state)) { sprintf(sbuf, "F3: %.0f V", id(maic_v3).state); lv_label_set_text(id(power_voltage_f3), sbuf); }
-          if (!std::isnan(id(maic_p1).state)) { sprintf(sbuf, "F1: %.0f W", id(maic_p1).state); lv_label_set_text(id(power_power_f1), sbuf); }
-          if (!std::isnan(id(maic_p2).state)) { sprintf(sbuf, "F2: %.0f W", id(maic_p2).state); lv_label_set_text(id(power_power_f2), sbuf); }
-          if (!std::isnan(id(maic_p3).state)) { sprintf(sbuf, "F3: %.0f W", id(maic_p3).state); lv_label_set_text(id(power_power_f3), sbuf); }
-          if (!std::isnan(id(maic_c1).state)) { sprintf(sbuf, "F1: %.1f A", id(maic_c1).state); lv_label_set_text(id(power_current_f1), sbuf); }
-          if (!std::isnan(id(maic_c2).state)) { sprintf(sbuf, "F2: %.1f A", id(maic_c2).state); lv_label_set_text(id(power_current_f2), sbuf); }
-          if (!std::isnan(id(maic_c3).state)) { sprintf(sbuf, "F3: %.1f A", id(maic_c3).state); lv_label_set_text(id(power_current_f3), sbuf); }
-          if (!std::isnan(id(house_total_p).state)) { sprintf(sbuf, "%.2f kW", id(house_total_p).state / 1000.0); lv_label_set_text(id(power_total_power), sbuf); }
-          if (!std::isnan(id(house_total_c).state)) { sprintf(sbuf, "%.1f A", id(house_total_c).state); lv_label_set_text(id(power_total_current), sbuf); }
-
-          bool alarm = id(air_alarm).state;
-          lv_label_set_text(id(dash_alarm_text), alarm ? "ТРИВОГА!" : "НЕБО ЧИСТЕ");
-          lv_obj_set_style_bg_color(id(dash_alarm_card), lv_color_hex(alarm ? 0x60120E : 0x17320E), 0);
-
-          if (id(page_watch).is_showing()) {
-            lv_obj_set_style_bg_color(id(watch_container), lv_color_hex(alarm ? 0x60120E : 0x0B1114), 0);
-          }
-
-          lv_label_set_text(id(sys_ip_label), ("IP: " + id(wifi_ip_address).state).c_str());
-
-          // Sync button states
-          if (id(display_backlight).remote_values.get_brightness() > 0.05) {
-            lv_obj_add_state(id(btn_backlight), LV_STATE_CHECKED);
-          } else {
-            lv_obj_clear_state(id(btn_backlight), LV_STATE_CHECKED);
-          }
-          if (id(switch_external_lights).state) {
-            lv_obj_add_state(id(btn_external_lights), LV_STATE_CHECKED);
-          } else {
-            lv_obj_clear_state(id(btn_external_lights), LV_STATE_CHECKED);
-          }
-          if (id(switch_kitchen_lights).state) {
-            lv_obj_add_state(id(btn_kitchen_lights), LV_STATE_CHECKED);
-          } else {
-            lv_obj_clear_state(id(btn_kitchen_lights), LV_STATE_CHECKED);
-          }
-          if (id(switch_bedroom).state) {
-            lv_obj_add_state(id(btn_bedroom), LV_STATE_CHECKED);
-          } else {
-            lv_obj_clear_state(id(btn_bedroom), LV_STATE_CHECKED);
-          }
-          if (id(switch_bathroom).state) {
-            lv_obj_add_state(id(btn_bathroom), LV_STATE_CHECKED);
-          } else {
-            lv_obj_clear_state(id(btn_bathroom), LV_STATE_CHECKED);
-          }
-          if (id(switch_hall).state) {
-            lv_obj_add_state(id(btn_hall), LV_STATE_CHECKED);
-          } else {
-            lv_obj_clear_state(id(btn_hall), LV_STATE_CHECKED);
-          }
-
-          // Media Player Sync (Simulator)
-          if (id(page_media).is_showing()) {
-            std::string current_player = id(selected_player_entity).state;
-            std::string title = "Немає даних";
-            std::string artist = "Виконавець невідомий";
-            std::string state = "idle";
-            float volume = 0;
-
-            if (current_player == "media_player.music_assistant") {
-              title = id(mass_title).state; artist = id(mass_artist).state; state = id(mass_state).state; volume = id(mass_volume).state;
-            } else if (current_player == "media_player.esp32_airplay_4dbde4") {
-              title = id(player_1_title).state; artist = id(player_1_artist).state; state = id(player_1_state).state; volume = id(player_1_volume).state;
-            } else if (current_player == "media_player.squeezelite_a1s_airplay") {
-              title = id(player_2_title).state; artist = id(player_2_artist).state; state = id(player_2_state).state; volume = id(player_2_volume).state;
-            }
-
-            lv_label_set_text(id(media_track_title), title.c_str());
-            lv_label_set_text(id(media_track_artist), artist.c_str());
-            lv_label_set_text(id(lbl_media_play_pause), (state == "playing") ? "\U000F03E4" : "\U000F040A");
-            lv_slider_set_value(id(media_volume_slider), (int)(volume * 100), LV_ANIM_OFF);
-          }
