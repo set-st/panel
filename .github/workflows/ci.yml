@@ -1,0 +1,65 @@
+# Checks every push to main and every pull request: generated files are in
+# sync, the web editor parses, both configs validate and the firmware builds.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  ESPHOME_VERSION: "2026.9.1"   # keep in sync with release.yml
+  FONTTOOLS_VERSION: "4.60.2"
+
+jobs:
+  checks:
+    name: Generated files and web editor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Icon files are up to date with icons.txt
+        run: |
+          pip install "fonttools==${FONTTOOLS_VERSION}"
+          python tools/gen_icons.py
+          git diff --exit-code -- config/panel || {
+            echo "::error::Run 'python3 tools/gen_icons.py' and commit the result"
+            exit 1
+          }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Web editor parses
+        run: node --check config/panel/configurator.js
+
+  firmware:
+    name: Build firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO / ESP-IDF toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ env.ESPHOME_VERSION }}-${{ runner.os }}
+
+      - name: Install ESPHome
+        run: pip install "esphome==${ESPHOME_VERSION}"
+
+      - name: Validate simulator config
+        run: esphome config simulator.yaml > /dev/null
+
+      - name: Build panel-s3 firmware
+        run: esphome -s firmware_version "ci-${GITHUB_SHA::7}" compile panel-s3.yaml

@@ -1,0 +1,21 @@
+# Personal build for flashing from your computer. Copy to panel-local.yaml
+# (git-ignored) and run:  esphome run panel-local.yaml
+#
+# It is the public firmware (panel-s3.yaml) plus what the ESPHome CLI needs to
+# upload over the LAN. Wi-Fi and the API key stay on the device as provisioned.
+packages:
+  panel: !include panel-s3.yaml
+
+substitutions:
+  firmware_version: "dev-local"
+  # The device accepts LAN uploads with the API key (as shown in HA) as password.
+  lan_ota_password: !secret api_key
+
+wifi:
+  # Address to upload to (DHCP reservation recommended); or use mDNS name.
+  use_address: esp32-s3-touch-lcd-7b.local
+
+api:
+  # Same key as provisioned on the device; lets the CLI read logs (esphome logs).
+  encryption:
+    key: !secret api_key

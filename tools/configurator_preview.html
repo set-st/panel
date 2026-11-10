@@ -96,9 +96,8 @@
   </script>
   <script src="../config/panel/configurator.js"></script>
   <script>
-    // Open the editor right away.
+    // No <esp-app> here, so the editor opens as the whole page (as on the device).
     addEventListener("load", () => {
-      document.getElementById("sp-configure")?.click();
       // #search: open the card form and type into the entity field (for screenshots).
       if (location.hash === "#icons") setTimeout(() => {
         [...document.querySelectorAll(".sp-tile")].find((x) => x.textContent.includes("Кухня"))

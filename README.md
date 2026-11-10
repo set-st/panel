@@ -71,7 +71,7 @@ Nothing about your home is hard-coded in the firmware. Pages, the bottom menu an
 
 ### Pages and cards from the web page
 
-Open the panel's IP address in a browser and press **Налаштувати панель**:
+Open the panel's IP address in a browser — the page is the panel editor:
 
 * **Pages** — up to 8. Each has a title, an icon and a "show in bottom menu" switch; hidden pages are reached through "go to page" cards. The first page is the start page. Pages can be reordered and deleted (their cards go with them).
 * **Cards** — up to 24 in total, on any page. Types:
@@ -122,15 +122,42 @@ The GT911 selects its I2C address (0x5D with INT low) when released from reset. 
 
 ## 🚀 Build and Flash
 
-To compile and upload to the device:
+`panel-s3.yaml` is the **public firmware**: it contains no secrets (no Wi-Fi password, no API key, no OTA password), so GitHub Actions can build it and publish it in releases.
+
+| What | Where it lives |
+|---|---|
+| Wi-Fi network | on the device — set via the fallback AP **Controll Panel Fallback** (captive portal) or Improv over USB ([web.esphome.io](https://web.esphome.io)) |
+| API encryption key | on the device — provisioned by Home Assistant when the panel is added |
+| LAN OTA password | = the API key (base64, as shown in HA), applied at runtime |
+| Firmware version | the git tag (`-s firmware_version v1.2.0`), `dev` for local builds |
+
+Wi-Fi and the API key can only be provisioned during the first **15 minutes after power-up** (`provisioning:`); to change them later, power-cycle the panel.
+
+**Builds from your computer** use `panel-local.yaml` (git-ignored; copy `panel-local.example.yaml`). It adds what the CLI needs: the API key from `secrets.yaml` (`api_key`) for logs and uploads, and the upload address.
 ```bash
-esphome run panel-s3.yaml
+esphome run panel-local.yaml --device OTA   # build + upload over Wi-Fi
+esphome logs panel-local.yaml           # logs
+esphome run simulator.yaml              # simulator (needs SDL2)
 ```
 
-To run the simulator (requires SDL2 library installed):
-```bash
-esphome run simulator.yaml
-```
+**A new panel:** flash `panel-s3.factory.bin` from a release (USB, [web.esphome.io](https://web.esphome.io)), connect to the **Controll Panel Fallback** Wi-Fi and enter your network (or use Improv in web.esphome.io), then add the device in Home Assistant — HA generates and provisions the API key. Enable *Allow the device to perform Home Assistant actions*.
+
+### Releases and updates over the internet
+
+* **CI** (`.github/workflows/ci.yml`, every push to `main` and every PR): checks that the icon files are generated from `icons.txt`, that the web editor parses, validates `simulator.yaml` and builds `panel-s3.yaml`.
+* **Release** (`.github/workflows/release.yml`): push a tag
+  ```bash
+  git tag v1.2.0 && git push origin v1.2.0
+  ```
+  GitHub builds the firmware with that version and publishes a release with `panel-s3.ota.bin`, `panel-s3.factory.bin` and `panel-s3.manifest.json`. Tags with a dash (`v1.3.0-rc1`) become pre-releases and are not offered to the panel.
+* **The panel** checks `releases/latest/download/panel-s3.manifest.json` every 6 hours (HTTPS, certificate verified). A newer version shows up in Home Assistant as the **Firmware** update entity with an *Install* button; the panel downloads the image from GitHub, checks its MD5 and reboots. Settings, Wi-Fi and the API key are kept.
+* Local builds report version `dev-local`, so HA will offer the latest release on top of them — that is expected.
+
+### Web page and security
+
+* The device web page is only the panel editor (`web_server: js_url: ""`): the stock ESPHome UI (entity list, logs, firmware upload through the browser) is not loaded. The REST API the editor uses stays available.
+* Firmware upload through the web page is disabled (`web_server: ota: false`); LAN uploads need the API key as password; internet updates come only from this repository's releases.
+* The previous API key was committed to this public repository; it has been replaced. Never put keys or passwords into `panel-s3.yaml` — use `secrets.yaml` / `panel-local.yaml` (both git-ignored).
 
 ### Touchscreen (GT911) start-up
 

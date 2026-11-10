@@ -138,7 +138,8 @@ def main():
     options.glyph_names = False
     subsetter = subset.Subsetter(options)
     subsetter.populate(unicodes=codepoints)
-    sub = TTFont(FONT)
+    # Keep the source font's timestamp so the output is reproducible (CI checks it).
+    sub = TTFont(FONT, recalcTimestamp=False)
     subsetter.subset(sub)
     buf = io.BytesIO()
     sub.flavor = "woff"

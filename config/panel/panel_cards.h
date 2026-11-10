@@ -292,19 +292,34 @@ inline bool is_alarm_entity(const std::string &entity) {
 }
 
 // Highest active level and the names of active threats (" · " separated).
+// Ukraine Alarm turns the general "Air" sensor on together with Air (red) or
+// Air (yellow); then the colour comes from the specific one: drones only is
+// yellow even though "Air" is on. "Air" alone (no type given) is red.
 inline AlarmLevel alarm_status(std::string *text = nullptr) {
   if (g_alarm_base.empty()) return ALARM_UNKNOWN;
-  AlarmLevel level = ALARM_UNKNOWN;
+  bool known = false;
+  bool on[sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0])] = {};
+  for (size_t i = 0; i < sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]); i++) {
+    std::string s = state_of(g_alarm_base + kAlarmKinds[i].suffix);
+    on[i] = s == "on";
+    known = known || s == "on" || s == "off";
+  }
+  auto is_on = [&](const char *suffix) {
+    for (size_t i = 0; i < sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]); i++)
+      if (strcmp(kAlarmKinds[i].suffix, suffix) == 0) return on[i];
+    return false;
+  };
+  bool typed_air = is_on("_air_red") || is_on("_air_yellow");
+
+  AlarmLevel level = known ? ALARM_CLEAR : ALARM_UNKNOWN;
   std::string names;
-  for (const auto &k : kAlarmKinds) {
-    std::string s = state_of(g_alarm_base + k.suffix);
-    if (s == "on") {
-      if (k.level > level) level = k.level;
-      if (!names.empty()) names += " · ";
-      names += k.text;
-    } else if (s == "off" && level < ALARM_CLEAR) {
-      level = ALARM_CLEAR;
-    }
+  for (size_t i = 0; i < sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]); i++) {
+    if (!on[i]) continue;
+    // The general "Air" is only a name/level of its own when no type is given.
+    if (typed_air && strcmp(kAlarmKinds[i].suffix, "_air") == 0) continue;
+    if (kAlarmKinds[i].level > level) level = kAlarmKinds[i].level;
+    if (!names.empty()) names += " · ";
+    names += kAlarmKinds[i].text;
   }
   if (text != nullptr) *text = level == ALARM_UNKNOWN ? "Немає даних" : level == ALARM_CLEAR ? "НЕБО ЧИСТЕ" : names;
   return level;

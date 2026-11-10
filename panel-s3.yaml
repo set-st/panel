@@ -1,6 +1,21 @@
+# Public firmware: contains no secrets, so CI can build it and publish it in
+# GitHub releases (see README, "Releases and updates over the internet").
+#  * Wi-Fi is stored on the device (fallback AP + captive portal / Improv);
+#  * the API encryption key is provisioned by Home Assistant and stored on the
+#    device; LAN OTA uploads must use that key as password (see interval below);
+#  * the version comes from the git tag (`-s firmware_version vX.Y.Z`).
+# Builds from your computer: use panel-local.yaml (see panel-local.example.yaml).
+substitutions:
+  firmware_version: "dev"
+  # Empty in the public firmware; panel-local.yaml sets it for CLI uploads.
+  lan_ota_password: ""
+
 esphome:
   name: esp32-s3-touch-lcd-7b
   friendly_name: "Controll Panel"
+  project:
+    name: "set-st.panel"
+    version: "${firmware_version}"
   platformio_options:
     board_build.flash_mode: dio
     board_build.partitions: partitions.csv
@@ -15,9 +30,6 @@ esphome:
           value: 'true'
       - delay: 5s
       - lvgl.widget.hide: boot_screen
-
-http_request:
-  verify_ssl: false
 
 esp32:
   board: esp32s3box
@@ -62,42 +74,64 @@ logger:
 
 api:
   reboot_timeout: 15min
-  encryption:
-    key: "CE8BO+MhPzJUmZPTrWKOA6uytbyTxZUkexxKxmwMGA4="
+  # No key here: Home Assistant provisions it when the device is added and it
+  # is kept on the device across updates.
+  encryption: {}
 
 captive_portal:
+improv_serial:
+
+# Wi-Fi (fallback AP) and the API key can only be provisioned during the first
+# 15 minutes after power-up; to re-provision later, power-cycle the panel.
+provisioning:
+  timeout: 15min
 
 web_server:
   port: 80
   version: 3
+  # Only the panel editor: the stock ESPHome UI (entity list, logs, firmware
+  # upload) is not loaded. The REST API the editor uses stays available.
+  js_url: ""
   js_include: config/panel/configurator.js
   css_include: config/panel/configurator.css
+  log: false
+  ota: false
+
+http_request:
+  verify_ssl: true
 
 ota:
+  # LAN uploads (esphome run / HA dashboard). The password is set at runtime to
+  # the provisioned API key, so the public firmware carries no password.
   - platform: esphome
-    password: !secret ota_password
+    id: ota_lan
+    password: "${lan_ota_password}"
     on_begin:
       - lvgl.pause:
       - logger.log: "OTA started, LVGL paused"
     on_end:
       - lvgl.resume:
+  # Updates from GitHub releases (the "Firmware" update entity below).
+  - platform: http_request
+    on_begin:
+      - lvgl.pause:
+      - logger.log: "Firmware download started, LVGL paused"
+    on_error:
+      - lvgl.resume:
+
+update:
+  - platform: http_request
+    id: firmware_update
+    name: "Firmware"
+    source: https://github.com/set-st/panel/releases/latest/download/panel-s3.manifest.json
+    update_interval: 6h
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  fast_connect: true
+  # Networks are stored on the device: set them through the fallback access
+  # point (captive portal) or Improv over USB (web.esphome.io).
   power_save_mode: none
-  # WSL2 sits behind a NAT, so mDNS (.local) never reaches the device.
-  # Force ESPHome to talk to the static IP directly for OTA/upload.
-  use_address: 192.168.1.178
   ap:
     ssid: "Controll Panel Fallback"
-  manual_ip:
-    static_ip: 192.168.1.178
-    gateway: 192.168.1.1
-    subnet: 255.255.255.0
-    dns1: 1.1.1.1
-    dns2: 8.8.8.8
 
 time:
   - platform: sntp
@@ -174,6 +208,24 @@ switch:
             - lvgl.widget.redraw:
 
 interval:
+  # LAN OTA password = the API key provisioned by Home Assistant (base64, as
+  # shown in HA). Until a key is provisioned LAN uploads are not protected.
+  - interval: 15s
+    then:
+      - lambda: |-
+          // Only in builds with a runtime-provisioned key (panel-local.yaml
+          // compiles the key and the password in).
+          #ifdef USE_OTA_ENCRYPTION_PROVISIONED
+          static bool applied = false;
+          if (applied) return;
+          noise::psk_t psk;
+          if (api::load_saved_noise_psk(psk)) {
+            id(ota_lan).set_auth_password(base64_encode(psk.data(), psk.size()));
+            applied = true;
+            ESP_LOGI("ota", "LAN OTA password set from the provisioned API key");
+          }
+          #endif
+
   # An air alarm interrupts the anti-burn-in "snow" so the screen shows it.
   - interval: 1s
     then:

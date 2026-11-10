@@ -1,107 +1,78 @@
-name: Build Release
+# Push a tag like v1.2.0 to publish a release. The panel checks the manifest of
+# the latest release every 6 hours and offers the update in Home Assistant
+# ("Firmware" update entity). Tags with a dash (v1.3.0-rc1) become pre-releases,
+# which the panel does not see.
+name: Release
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
+  push:
+    tags: ["v*"]
 
 permissions:
   contents: write
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ESPHOME_VERSION: "2026.9.1"   # keep in sync with ci.yml
+  BUILD_DIR: .esphome/build/esp32-s3-touch-lcd-7b/build
 
 jobs:
-  build-firmware:
-    name: Build ${{ matrix.slug }}
+  release:
+    name: Build and publish ${{ github.ref_name }}
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - device: panel-s3
-            slug: panel-s3
-            chip: ESP32-S3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Cache ESPHome build
-        uses: actions/cache@v5
+      - uses: actions/setup-python@v5
         with:
-          path: builds/.esphome
-          key: esphome-${{ matrix.slug }}-${{ hashFiles('*.yaml', 'common/**', 'devices/**') }}
-          restore-keys: |
-            esphome-${{ matrix.slug }}-
+          python-version: "3.12"
 
-      - name: Compile firmware
+      - name: Cache PlatformIO / ESP-IDF toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ env.ESPHOME_VERSION }}-${{ runner.os }}
+
+      - name: Install ESPHome
+        run: pip install "esphome==${ESPHOME_VERSION}"
+
+      - name: Build firmware ${{ github.ref_name }}
+        run: esphome -s firmware_version "${GITHUB_REF_NAME}" compile panel-s3.yaml
+
+      - name: Collect binaries and write the update manifest
         env:
-          VERSION: ${{ github.event.release.tag_name || github.ref_name }}
-        run: >-
-          docker run --rm
-          -v "${PWD}:/config"
-          ghcr.io/esphome/esphome:2026.4.0
-          -s firmware_version "${VERSION}"
-          compile panel-s3.yaml
-
-      - name: Collect firmware files and generate manifest
-        id: firmware
+          REPO: ${{ github.repository }}
         run: |
-          BUILD_DIR=$(dirname "$(find builds/.esphome/build -name firmware.factory.bin -print -quit)")
-          mkdir -p output
-
-          if [ ! -f "${BUILD_DIR}/firmware.factory.bin" ]; then
-            echo "::error::Firmware compilation failed — factory binary not found"
-            exit 1
-          fi
-
-          sudo cp "${BUILD_DIR}/firmware.factory.bin" output/${{ matrix.slug }}.factory.bin
-          sudo cp "${BUILD_DIR}/firmware.bin" output/${{ matrix.slug }}.ota.bin
-
-          OTA_MD5=$(md5sum output/${{ matrix.slug }}.ota.bin | cut -d ' ' -f 1)
-          VERSION="${{ github.event.release.tag_name || github.ref_name }}"
-
-          cat > output/${{ matrix.slug }}.manifest.json << EOF
-          {
-            "name": "Smart Home Control Panel",
-            "version": "${VERSION}",
-            "home_assistant_domain": "esphome",
-            "builds": [
-              {
-                "chipFamily": "${{ matrix.chip }}",
-                "parts": [
-                  { "path": "${{ matrix.slug }}.factory.bin", "offset": 0 }
-                ],
-                "ota": {
-                  "path": "${{ matrix.slug }}.ota.bin",
-                  "md5": "${OTA_MD5}",
-                  "release_url": "https://github.com/set-st/panel/releases/tag/${VERSION}"
-                }
-              }
-            ]
+          mkdir -p dist
+          cp "${BUILD_DIR}/firmware.ota.bin" dist/panel-s3.ota.bin
+          cp "${BUILD_DIR}/firmware.factory.bin" dist/panel-s3.factory.bin
+          python3 - <<'PY'
+          import hashlib, json, os
+          tag = os.environ["GITHUB_REF_NAME"]
+          base = f"https://github.com/{os.environ['REPO']}/releases/download/{tag}"
+          md5 = hashlib.md5(open("dist/panel-s3.ota.bin", "rb").read()).hexdigest()
+          manifest = {
+              "name": "Smart Home Control Panel",
+              "version": tag,
+              "builds": [{
+                  "chipFamily": "ESP32-S3",
+                  "parts": [{"path": f"{base}/panel-s3.factory.bin", "offset": 0}],
+                  "ota": {
+                      "path": f"{base}/panel-s3.ota.bin",
+                      "md5": md5,
+                      "summary": f"Smart Home Control Panel {tag}",
+                      "release_url": f"https://github.com/{os.environ['REPO']}/releases/tag/{tag}",
+                  },
+              }],
           }
-          EOF
+          json.dump(manifest, open("dist/panel-s3.manifest.json", "w"), indent=2)
+          PY
+          cat dist/panel-s3.manifest.json
+          ls -la dist
 
-      - name: Upload firmware artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: firmware-${{ matrix.slug }}
-          path: output/
-
-  publish:
-    name: Publish to Release
-    if: github.event_name == 'release'
-    needs: build-firmware
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all firmware artifacts
-        uses: actions/download-artifact@v8
-        with:
-          pattern: firmware-*
-          merge-multiple: true
-          path: firmware
-
-      - name: Upload firmware to release
+      - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh release upload "${{ github.event.release.tag_name }}" firmware/* --clobber
+        run: |
+          flags=(--generate-notes --title "${GITHUB_REF_NAME}")
+          [[ "${GITHUB_REF_NAME}" == *-* ]] && flags+=(--prerelease)
+          gh release create "${GITHUB_REF_NAME}" dist/* "${flags[@]}"

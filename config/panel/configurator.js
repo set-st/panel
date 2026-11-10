@@ -1,4 +1,6 @@
-// Panel editor injected into the ESPHome web server page (web_server.js_include).
+// Panel editor served by the ESPHome web server (web_server.js_include).
+// With `js_url: ""` the stock ESPHome UI is not loaded and the editor is the
+// whole page ("standalone"); next to the stock UI it opens from a button.
 // espcontrol-style: pages and cards live in text entities on the device, the
 // firmware (config/panel/panel_cards.h) renders them and talks to Home
 // Assistant itself.
@@ -362,6 +364,9 @@
     return { element: wrap, refresh: show };
   }
 
+  // The stock ESPHome UI registers <esp-app>; without it the editor is the page.
+  const standalone = () => !window.customElements?.get("esp-app");
+
   async function openEditor() {
     const state = { cards: [], pages: [], header: "", alarm: "", page: 0 };
 
@@ -374,6 +379,11 @@
     const haBox = el("details", { class: "sp-screen" });
     const overlay = el("div", { class: "sp-overlay" });
     const close = () => overlay.remove();
+    const fullPage = standalone();
+    if (fullPage) {
+      overlay.classList.add("sp-standalone");
+      document.title = "Панель — налаштування";
+    }
 
     overlay.append(
       el("main", { class: "sp-dialog", role: "dialog", "aria-modal": "true" }, [
@@ -386,7 +396,7 @@
                 + "У Home Assistant увімкніть для пристрою «Allow the device to perform Home Assistant actions».",
             }),
           ]),
-          el("button", { class: "sp-close", type: "button", "aria-label": "Закрити", text: "×", onclick: close }),
+          fullPage ? null : el("button", { class: "sp-close", type: "button", "aria-label": "Закрити", text: "×", onclick: close }),
         ]),
         tabs,
         pageBox,
@@ -397,7 +407,7 @@
         status,
       ]),
     );
-    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    if (!fullPage) overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
     document.body.append(overlay);
 
     const setStatus = (text, error = false) => {
@@ -830,6 +840,10 @@
   }
 
   function installButton() {
+    if (standalone()) {
+      openEditor().catch((e) => console.error("Panel editor failed", e));
+      return;
+    }
     if (document.getElementById("sp-configure")) return;
     document.body.append(
       el("button", {
