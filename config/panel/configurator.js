@@ -80,6 +80,31 @@
     ["_artillery", "Артобстріл"], ["_urban_fights", "Вуличні бої"], ["_chemical", "Хімічна"],
     ["_nuclear", "Ядерна"], ["_unknown", "Невідома"],
   ];
+  // Names the integration gives the siblings ("<region> Air (red)").
+  const ALARM_NAMES = {
+    _air_red: "Air (red)", _air_yellow: "Air (yellow)", _artillery: "Artillery", _urban_fights: "Urban fights",
+    _chemical: "Chemical", _nuclear: "Nuclear", _unknown: "Unknown",
+  };
+  // The setting is "<region>_air[;sibling...]": siblings are listed only when
+  // their entity_id is not "<region><suffix>" (e.g. HA prefixed an area).
+  const alarmAir = (value) => String(value || "").split(";")[0].trim();
+  // Finds the region's sensors in HA: { suffix: entity_id }.
+  function alarmSiblings(air, entities) {
+    const base = air.replace(/_air$/, "");
+    const region = base.replace(/^binary_sensor\./, "");
+    const airName = entities.find((e) => e.id === air)?.name || "";
+    const prefix = airName.replace(/\s*Air$/, "");
+    const out = {};
+    for (const [suffix] of ALARM_KINDS) {
+      if (suffix === "_air") { if (entities.some((e) => e.id === air)) out[suffix] = air; continue; }
+      const sensors = entities.filter((e) => e.id.startsWith("binary_sensor.") && e.id.endsWith(suffix));
+      const hit = sensors.find((e) => e.id === base + suffix)
+        || (prefix && sensors.find((e) => e.name === `${prefix} ${ALARM_NAMES[suffix]}`))
+        || sensors.find((e) => e.id.endsWith(`_${region}${suffix}`));
+      if (hit) out[suffix] = hit.id;
+    }
+    return out;
+  }
   const BRIGHTNESS_PATH = numberPath("Screen Brightness");
   const TIMEOUT_PATH = numberPath("Screen Sleep Timeout");
 
@@ -550,7 +575,7 @@
       const alarmNote = el("p", {
         class: "sp-muted sp-wide",
         text: state.alarm
-          ? `Показує стан тривоги з ${state.alarm}. Джерело змінюється в «Налаштування панелі → Повітряна тривога».`
+          ? `Показує стан тривоги з ${alarmAir(state.alarm)}. Джерело змінюється в «Налаштування панелі → Повітряна тривога».`
           : "Спочатку вкажіть сенсор регіону в «Налаштування панелі → Повітряна тривога» (внизу).",
       });
       const sync = () => {
@@ -622,7 +647,7 @@
         const next = indices[pos + 1];
         const [sx, sy] = SIZE_SPAN[c.size] || [1, 1];
         const subtitle = c.type === "subpage" ? `→ ${state.pages[Number(c.entity)]?.title ?? c.entity}`
-          : c.type === "alarm" ? (state.alarm || "сенсор не задано")
+          : c.type === "alarm" ? (alarmAir(state.alarm) || "сенсор не задано")
           : c.type === "chart" ? `${c.entity} · ${c.period} год`
           : c.entity;
         return el("div", { class: `sp-tile sp-type-${c.type}`, style: `grid-column: span ${sx}; grid-row: span ${sy}` }, [
@@ -681,13 +706,13 @@
       const header = el("input", { type: "text", placeholder: "sensor.outside_temperature", value: state.header });
       const headerSearch = entitySearch(header, () => TYPE_DOMAINS.header);
 
-      const alarm = el("input", { type: "text", placeholder: "binary_sensor.kyiv_air", value: state.alarm });
+      const alarm = el("input", { type: "text", placeholder: "binary_sensor.kyiv_air", value: alarmAir(state.alarm) });
       const alarmFound = el("p", { class: "sp-muted sp-wide" });
       const showAlarmFound = () => {
-        const base = alarm.value.trim().toLowerCase().replace(/_air$/, "");
-        if (!base || !ha.entities) { alarmFound.textContent = ""; return; }
-        const ids = new Set(ha.entities.map((e) => e.id));
-        const found = ALARM_KINDS.filter(([s]) => ids.has(base + s)).map(([, n]) => n);
+        const air = alarm.value.trim().toLowerCase();
+        if (!air || !ha.entities) { alarmFound.textContent = ""; return; }
+        const siblings = alarmSiblings(air, ha.entities);
+        const found = ALARM_KINDS.filter(([s]) => siblings[s]).map(([, n]) => n);
         alarmFound.textContent = found.length
           ? `Знайдено в Home Assistant: ${found.join(", ")}.`
           : "У Home Assistant не знайдено сенсорів з такою назвою.";
@@ -698,9 +723,21 @@
 
       const save = () => run("Збереження налаштувань", async () => {
         const h = header.value.trim().toLowerCase();
-        const a = alarm.value.trim().toLowerCase();
+        const air = alarm.value.trim().toLowerCase();
         if (h && !ENTITY_RE.test(h)) throw new Error("Датчик у шапці: entity ID має виглядати як sensor.name");
-        if (a && !ENTITY_RE.test(a)) throw new Error("Тривога: entity ID має виглядати як binary_sensor.region_air");
+        if (air && !ENTITY_RE.test(air)) throw new Error("Тривога: entity ID має виглядати як binary_sensor.region_air");
+        let a = air;
+        if (air && !ha.entities) await loadHaEntities();
+        if (air && ha.entities) {
+          // Siblings whose entity_id the panel cannot derive from the Air sensor.
+          const base = air.replace(/_air$/, "");
+          const extra = Object.entries(alarmSiblings(air, ha.entities))
+            .filter(([suffix, id]) => suffix !== "_air" && id !== base + suffix).map(([, id]) => id);
+          a = [air, ...extra].join(";");
+        } else if (air && air === alarmAir(state.alarm)) {
+          a = state.alarm;  // HA not reachable: keep the siblings found before
+        }
+        if (bytes(a) > 255) throw new Error("Тривога: забагато сенсорів з іншими entity ID (понад 255 символів). Перейменуйте їх у Home Assistant.");
         await writeValue(HEADER_PATH, h);
         state.header = h;
         await writeValue(ALARM_PATH, a);

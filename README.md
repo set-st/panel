@@ -85,7 +85,7 @@ Open the panel's IP address in a browser — the page is the panel editor:
 
 ### Air alarm
 
-Set the region's Ukraine Alarm **Air** sensor (`binary_sensor.<region>_air`) in *Налаштування панелі → Повітряна тривога*. The other sensors of the region (`_air_red`, `_air_yellow`, `_artillery`, `_urban_fights`, `_chemical`, `_nuclear`, `_unknown`) are derived from it. While any of them is on, the page background turns red (dark yellow if only drones), the screen wakes up and the anti-burn-in snow stops. To test, set e.g. `binary_sensor.<region>_air_yellow` to `on` in HA *Developer tools → States*.
+Set the region's Ukraine Alarm **Air** sensor (`binary_sensor.<region>_air`) in *Налаштування панелі → Повітряна тривога*. The other sensors of the region (`_air_red`, `_air_yellow`, `_artillery`, `_urban_fights`, `_chemical`, `_nuclear`, `_unknown`) are derived from it. If some of them have a different entity_id in HA (for example, HA added an area prefix: `binary_sensor.<area>_<region>_air_yellow`), the editor finds them by name when you press *Зберегти* (needs the HA address and token in the editor) and stores them in the setting too. While any of them is on, the page background turns red (dark yellow if only drones), the screen wakes up and the anti-burn-in snow stops. To test, set e.g. `binary_sensor.<region>_air_yellow` to `on` in HA *Developer tools → States*.
 
 The timezone is not a panel setting: Home Assistant 2026.3+ sends its own timezone to the device; the YAML value is the fallback.
 

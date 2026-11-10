@@ -58,6 +58,10 @@ jobs:
       - name: Install ESPHome
         run: pip install "esphome==${ESPHOME_VERSION}"
 
+      # The SDL display checks sdl2-config during validation.
+      - name: Install SDL2
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+
       - name: Validate simulator config
         run: esphome config simulator.yaml > /dev/null
 

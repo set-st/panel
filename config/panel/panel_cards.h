@@ -22,7 +22,9 @@
 // "Panel Header Sensor" text entity: entity_id shown in the status bar.
 // "Panel Alarm Sensor" text entity: the Ukraine Alarm "Air" binary sensor of
 //   the region (binary_sensor.<region>_air). Its siblings (_air_red,
-//   _air_yellow, _artillery, ...) are derived from it. While an alarm is active
+//   _air_yellow, _artillery, ...) are derived from it; siblings whose
+//   entity_id differs (e.g. HA prefixed an area) follow after ";" and are
+//   matched by suffix: "binary_sensor.x_air;binary_sensor.area_x_air_yellow". While an alarm is active
 //   the page background turns red (yellow for drones only) and alarm cards
 //   show which threats are active.
 
@@ -272,7 +274,8 @@ inline const AlarmKind kAlarmKinds[] = {
     {"_air_yellow", "ДРОНИ", ALARM_YELLOW},
 };
 
-inline std::string g_alarm_base;  // "binary_sensor.<region>" (entity without "_air")
+constexpr size_t kAlarmKindCount = sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]);
+inline std::string g_alarm_entities[kAlarmKindCount];  // entity_id per kind; empty = not configured
 
 constexpr uint32_t kPageBg = 0x0B1114;
 inline uint32_t alarm_page_bg(AlarmLevel l) { return l == ALARM_RED ? 0x60120E : l == ALARM_YELLOW ? 0x4A3A00 : kPageBg; }
@@ -284,10 +287,9 @@ inline uint32_t alarm_card_border(AlarmLevel l) {
 }
 
 inline bool is_alarm_entity(const std::string &entity) {
-  if (g_alarm_base.empty() || entity.compare(0, g_alarm_base.size(), g_alarm_base) != 0) return false;
-  for (const auto &k : kAlarmKinds)
-    if (entity.size() == g_alarm_base.size() + strlen(k.suffix) && entity.compare(g_alarm_base.size(), std::string::npos, k.suffix) == 0)
-      return true;
+  if (entity.empty()) return false;
+  for (const auto &e : g_alarm_entities)
+    if (e == entity) return true;
   return false;
 }
 
@@ -296,16 +298,16 @@ inline bool is_alarm_entity(const std::string &entity) {
 // Air (yellow); then the colour comes from the specific one: drones only is
 // yellow even though "Air" is on. "Air" alone (no type given) is red.
 inline AlarmLevel alarm_status(std::string *text = nullptr) {
-  if (g_alarm_base.empty()) return ALARM_UNKNOWN;
+  if (g_alarm_entities[0].empty()) return ALARM_UNKNOWN;
   bool known = false;
-  bool on[sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0])] = {};
-  for (size_t i = 0; i < sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]); i++) {
-    std::string s = state_of(g_alarm_base + kAlarmKinds[i].suffix);
+  bool on[kAlarmKindCount] = {};
+  for (size_t i = 0; i < kAlarmKindCount; i++) {
+    std::string s = state_of(g_alarm_entities[i]);
     on[i] = s == "on";
     known = known || s == "on" || s == "off";
   }
   auto is_on = [&](const char *suffix) {
-    for (size_t i = 0; i < sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]); i++)
+    for (size_t i = 0; i < kAlarmKindCount; i++)
       if (strcmp(kAlarmKinds[i].suffix, suffix) == 0) return on[i];
     return false;
   };
@@ -313,7 +315,7 @@ inline AlarmLevel alarm_status(std::string *text = nullptr) {
 
   AlarmLevel level = known ? ALARM_CLEAR : ALARM_UNKNOWN;
   std::string names;
-  for (size_t i = 0; i < sizeof(kAlarmKinds) / sizeof(kAlarmKinds[0]); i++) {
+  for (size_t i = 0; i < kAlarmKindCount; i++) {
     if (!on[i]) continue;
     // The general "Air" is only a name/level of its own when no type is given.
     if (typed_air && strcmp(kAlarmKinds[i].suffix, "_air") == 0) continue;
@@ -460,7 +462,7 @@ inline void render_slot(int i) {
     AlarmLevel level = alarm_status(&text);
     lv_obj_set_style_bg_color(w.card, lv_color_hex(alarm_card_bg(level)), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(w.card, lv_color_hex(alarm_card_border(level)), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_label_set_text(w.label, g_alarm_base.empty() ? "Не налаштовано" : text.c_str());
+    lv_label_set_text(w.label, g_alarm_entities[0].empty() ? "Не налаштовано" : text.c_str());
     lv_label_set_text(w.value, c.label.empty() ? "Тривога" : c.label.c_str());
     set_state(w.card, LV_STATE_CHECKED, false);
     set_state(w.card, LV_STATE_DISABLED, false);
@@ -541,7 +543,13 @@ inline void render_entity(const std::string &entity) {
   for (int i = 0; i < SLOTS; i++)
     if (g_cards[i].entity == entity && g_cards[i].type != "subpage" && g_cards[i].type != "alarm") render_slot(i);
   if (entity == g_header_entity) render_header();
-  if (is_alarm_entity(entity)) render_alarm();
+  if (is_alarm_entity(entity)) {
+    std::string text;
+    int level = alarm_status(&text);
+    ESP_LOGI("panel_cards", "Alarm sensor %s = %s -> level %d (%s)", entity.c_str(), state_of(entity).c_str(), level,
+             text.c_str());
+    render_alarm();
+  }
 }
 
 // ------------------------------------------------------- Home Assistant API
@@ -734,13 +742,40 @@ inline void set_header_entity(const std::string &entity) {
   render_header();
 }
 
-// Accepts the region's "Air" sensor (binary_sensor.x_air) or the bare prefix.
+inline bool ends_with(const std::string &s, const char *suffix) {
+  size_t n = strlen(suffix);
+  return s.size() >= n && s.compare(s.size() - n, n, suffix) == 0;
+}
+
+// "<region>_air[;<sibling with another entity_id>...]" (see the top of the
+// file); the bare prefix "binary_sensor.<region>" is accepted too.
 inline void set_alarm_entity(const std::string &raw) {
-  std::string base = raw;
-  if (base.size() > 4 && base.compare(base.size() - 4, 4, "_air") == 0) base.resize(base.size() - 4);
-  g_alarm_base = base;
-  if (!base.empty())
-    for (const auto &k : kAlarmKinds) subscribe_entity(base + k.suffix, false);
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= raw.size()) {
+    size_t end = raw.find(';', start);
+    if (end == std::string::npos) end = raw.size();
+    std::string p = raw.substr(start, end - start);
+    p.erase(0, p.find_first_not_of(' '));
+    p.erase(p.find_last_not_of(' ') + 1);
+    if (!p.empty()) parts.push_back(p);
+    start = end + 1;
+  }
+  for (auto &e : g_alarm_entities) e.clear();
+  if (!parts.empty()) {
+    std::string base = parts[0];
+    if (ends_with(base, "_air")) base.resize(base.size() - 4);
+    for (size_t i = 0; i < kAlarmKindCount; i++) g_alarm_entities[i] = base + kAlarmKinds[i].suffix;
+    // Overrides: the first kind whose suffix the entity ends with
+    // (_air_red / _air_yellow are listed before _air).
+    for (size_t j = 1; j < parts.size(); j++)
+      for (size_t i = 0; i < kAlarmKindCount; i++)
+        if (ends_with(parts[j], kAlarmKinds[i].suffix)) {
+          g_alarm_entities[i] = parts[j];
+          break;
+        }
+    for (const auto &e : g_alarm_entities) subscribe_entity(e, false);
+  }
   render_alarm();
 }
 

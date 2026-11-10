@@ -46,7 +46,7 @@ UI texts are Ukrainian.
 * Card text entity: `type;entity;label;icon;page;size[;period]`. Types: `toggle | sensor | action | subpage | alarm | chart`. Adding a type touches: `panel_cards.h` (`set_config` whitelist, `icon_glyph`, `render_slot`, `on_click`, subscriptions) and `configurator.js` (`TYPES`, `TYPE_SHORT`, `TYPE_DOMAINS`, form `sync`, tile subtitle) + README.
 * Fonts contain only listed glyphs: `mdi_36` from `icons.txt`; Roboto has Latin/Cyrillic core only (no `→` etc. — check text on a screenshot).
 * LVGL: in flex containers use `flex_align_track: center` to centre vertically; the status block in the header is `floating` + `RIGHT_MID` (flex pushed it below the 50 px bar). Snapshots of the top layer are taken per child (a full-screen ARGB buffer fails on fragmented PSRAM).
-* Air alarm (Ukraine Alarm): one setting `Panel Alarm Sensor` = `binary_sensor.<region>_air`; siblings by suffix. `Air` is on together with `Air (red)`/`Air (yellow)`; the typed one decides the colour (yellow = drones, red = ballistic/other). `Air` alone = red.
+* Air alarm (Ukraine Alarm): one setting `Panel Alarm Sensor` = `binary_sensor.<region>_air`; siblings by suffix; siblings with another entity_id (HA may prefix an area, e.g. `binary_sensor.<area>_<region>_air_yellow`) are found by the editor via HA (friendly name) and stored after `;` — the firmware maps them by suffix. Max 255 chars. `Air` is on together with `Air (red)`/`Air (yellow)`; the typed one decides the colour (yellow = drones, red = ballistic/other). `Air` alone = red.
 * Charts: `LV_USE_CHART` via build flag, 120 buckets per period, chart drawn as card background, min visible range 2 % of the value.
 * After editing `icons.txt` run `tools/gen_icons.py`; output must be reproducible (CI diffs it).
 
