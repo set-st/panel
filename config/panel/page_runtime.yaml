@@ -55,6 +55,8 @@ widgets:
               then:
                 - lambda: |-
                     panel_cards::set_small_font(id(roboto_14)->get_lv_font());
+                    panel_cards::set_clock_fonts({id(clock_56)->get_lv_font(), id(clock_110)->get_lv_font(), id(clock_200)->get_lv_font()},
+                                                 id(roboto_22)->get_lv_font(), id(roboto_36)->get_lv_font());
                     panel_cards::bind_page(id(runtime_page_title), id(runtime_back_btn), id(runtime_empty_hint), id(runtime_grid));
             widgets:
               - !include { file: card_slot.yaml, vars: { n: "1" } }

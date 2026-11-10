@@ -80,7 +80,8 @@ Open the panel's IP address in a browser — the page is the panel editor:
   * **Дія** — runs a `scene`, `script`, `automation`, `button` or `input_button`.
   * **Перехід на сторінку** — opens another page; the back button returns.
   * **Повітряна тривога** — Ukraine Alarm status: green «НЕБО ЧИСТЕ», yellow for drones only (Air (yellow)), red for ballistics (Air (red)), a general air alarm or other threats; lists the active threats.
-* **Sizes** — 1×1, 2×1, 2×2 or full width. The grid adapts to the screen: 4 columns on wide displays (3 or 2 on narrower ones), 3 rows visible, scrolls if there are more.
+  * **Годинник** — time and date (Ukrainian weekday and month) on a transparent card; the digits use the largest size that fits (56/110/200 px), so «На всю сторінку» makes a big wall clock. Time comes from SNTP; `--:--` until synced.
+* **Sizes** — 1×1, 2×1, 2×2, full width or the whole page (all columns × visible rows). The grid adapts to the screen: 4 columns on wide displays (3 or 2 on narrower ones), 3 rows visible, scrolls if there are more.
 * **Налаштування панелі** — brightness, sleep timeout, anti-burn-in now, status-bar sensor, air-alarm sensor, Wi‑Fi / battery info, restart.
 
 ### Air alarm

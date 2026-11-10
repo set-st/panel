@@ -245,6 +245,7 @@
 .sp-card-editor .sp-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .sp-type-alarm { border-left: 4px solid #e53935; }
 .sp-type-chart { border-left: 4px solid #64d2ff; }
+.sp-type-clock { border-left: 4px solid #aaaaaa; }
 
 /* Standalone page (stock ESPHome UI not loaded) */
 html:has(.sp-standalone), body:has(.sp-standalone) { margin: 0; background: #0b1114; }

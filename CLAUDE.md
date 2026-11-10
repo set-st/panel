@@ -43,11 +43,13 @@ UI texts are Ukrainian.
 
 ## Firmware conventions
 
-* Card text entity: `type;entity;label;icon;page;size[;period]`. Types: `toggle | sensor | action | subpage | alarm | chart`. Adding a type touches: `panel_cards.h` (`set_config` whitelist, `icon_glyph`, `render_slot`, `on_click`, subscriptions) and `configurator.js` (`TYPES`, `TYPE_SHORT`, `TYPE_DOMAINS`, form `sync`, tile subtitle) + README.
+* Card text entity: `type;entity;label;icon;page;size[;period]`. Types: `toggle | sensor | action | subpage | alarm | chart | clock` (alarm/clock use a placeholder entity). Sizes 1–5 (5 = whole page). Adding a type touches: `panel_cards.h` (`set_config` whitelist, `icon_glyph`, `render_slot`, `on_click`, subscriptions) and `configurator.js` (`TYPES`, `TYPE_SHORT`, `TYPE_DOMAINS`, form `sync`, tile subtitle) + README.
+* Clock fonts `clock_56/110/200` contain only `0123456789:-`; date uses `roboto_22`/`roboto_36`.
 * Fonts contain only listed glyphs: `mdi_36` from `icons.txt`; Roboto has Latin/Cyrillic core only (no `→` etc. — check text on a screenshot).
 * LVGL: in flex containers use `flex_align_track: center` to centre vertically; the status block in the header is `floating` + `RIGHT_MID` (flex pushed it below the 50 px bar). Snapshots of the top layer are taken per child (a full-screen ARGB buffer fails on fragmented PSRAM).
 * Air alarm (Ukraine Alarm): one setting `Panel Alarm Sensor` = `binary_sensor.<region>_air`; siblings by suffix; siblings with another entity_id (HA may prefix an area, e.g. `binary_sensor.<area>_<region>_air_yellow`) are found by the editor via HA (friendly name) and stored after `;` — the firmware maps them by suffix. Max 255 chars. `Air` is on together with `Air (red)`/`Air (yellow)`; the typed one decides the colour (yellow = drones, red = ballistic/other). `Air` alone = red.
 * Charts: `LV_USE_CHART` via build flag, 120 buckets per period, chart drawn as card background, min visible range 2 % of the value.
+* **Internal RAM is tight** (~20 KB free). When it drops to ~10 KB, Wi-Fi silently loses every outgoing packet over ~1200 bytes: pages, `/0.js`, screenshots and the log dump stall while small requests and OTA still work (`ping -s 1400 <ip>` fails). Put buffers in PSRAM (`heap_caps_malloc(..., MALLOC_CAP_SPIRAM)`, see chart `History`), no big static arrays. To measure: temporarily add `debug:` + `sensor: platform: debug (free, block, psram)` to `panel-local.yaml`.
 * After editing `icons.txt` run `tools/gen_icons.py`; output must be reproducible (CI diffs it).
 
 ## Releases

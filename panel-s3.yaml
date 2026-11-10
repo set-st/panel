@@ -47,6 +47,10 @@ esp32:
       CONFIG_SPIRAM_RODATA: y
       CONFIG_ESP_TASK_WDT_TIMEOUT_S: "60"
       CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: y
+      # Internal RAM is scarce (LVGL objects, cards): small allocations go to
+      # PSRAM too, so Wi-Fi keeps enough internal RAM to send large packets
+      # (with ~10 KB left, web pages and pings over ~1200 bytes were lost).
+      CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL: "256"
       CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM: "16"
       CONFIG_ESP_CONSOLE_UART_DEFAULT: y
       CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG: y

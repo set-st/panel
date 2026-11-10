@@ -9,14 +9,16 @@
 // "Panel Pages" text entity: pages separated by ';', each "title|icon|nav"
 //   (nav = 1 shows the page in the bottom menu). Page 0 is the start page.
 // "Panel Card N" text entity: "type;entity;label;icon;page;size;period"
-//     type   - toggle | sensor | action | subpage | alarm | chart
+//     type   - toggle | sensor | action | subpage | alarm | chart | clock
 //     entity - HA entity_id (for subpage: target page index; for alarm: "alarm",
 //              the source is the "Panel Alarm Sensor" setting)
 //     label  - caption shown on the card
 //     icon   - MDI icon name from kIcons in panel_icons.h, generated from
 //              icons.txt (empty = default for the type)
 //     page   - page index the card lives on
-//     size   - 1 = 1x1, 2 = 2x1, 3 = 2x2, 4 = full row
+//     size   - 1 = 1x1, 2 = 2x1, 3 = 2x2, 4 = full row, 5 = whole page
+//     clock  - entity "clock"; time and date on a transparent card (no icon
+//              or label); the digits use the largest font that fits
 //     period - chart only: hours shown, 1 | 6 | 24 (history is kept in RAM
 //              from the moment the card exists; it is lost on reboot)
 // "Panel Header Sensor" text entity: entity_id shown in the status bar.
@@ -38,6 +40,9 @@
 #include <vector>
 
 #include "esphome/components/api/api_server.h"
+#ifdef USE_ESP32
+#include "esp_heap_caps.h"
+#endif
 #include "panel_icons.h"
 
 namespace panel_cards {
@@ -71,16 +76,20 @@ struct Widgets {
   lv_obj_t *chart = nullptr;  // created on demand for chart cards
   lv_obj_t *stats = nullptr;
   lv_chart_series_t *series = nullptr;
+  lv_obj_t *clock_time = nullptr;  // created on demand for clock cards
+  lv_obj_t *clock_date = nullptr;
 };
 
 // Chart history: CHART_POINTS buckets over the period, each the average of the
 // samples received in it (or the last known value if the sensor was quiet).
 constexpr int CHART_POINTS = 120;
 
+// Buckets live in PSRAM and only for chart cards: internal RAM is scarce and
+// Wi-Fi needs it to send anything larger than a small packet.
 struct History {
   std::string entity;
   int period = 0;
-  float buckets[CHART_POINTS];
+  float *buckets = nullptr;
   int filled = 0;           // completed buckets, newest at the end
   float sum = 0;
   int count = 0;
@@ -90,6 +99,14 @@ struct History {
   void reset(const std::string &e, int p) {
     entity = e;
     period = p;
+    if (p > 0 && buckets == nullptr) {
+#ifdef USE_ESP32
+      buckets = static_cast<float *>(heap_caps_malloc(sizeof(float) * CHART_POINTS, MALLOC_CAP_SPIRAM));
+#else
+      buckets = static_cast<float *>(malloc(sizeof(float) * CHART_POINTS));
+#endif
+      if (buckets == nullptr) period = 0;  // no memory: the chart stays empty
+    }
     filled = 0;
     sum = 0;
     count = 0;
@@ -132,6 +149,10 @@ inline Card g_cards[SLOTS];
 inline Widgets g_widgets[SLOTS];
 inline History g_history[SLOTS];
 inline const lv_font_t *g_small_font = nullptr;
+// Clock fonts, smallest first: digits only for the time, text for the date.
+inline std::vector<const lv_font_t *> g_clock_fonts;
+inline const lv_font_t *g_clock_date_small = nullptr;
+inline const lv_font_t *g_clock_date_large = nullptr;
 inline std::vector<Page> g_pages = {{"Головна", "home", true}};
 inline std::map<std::string, std::string> g_states;  // key: entity or entity|attribute
 inline std::set<std::string> g_subscribed;
@@ -348,6 +369,7 @@ inline void apply_size(int i) {
     case 2: span_x = 2; break;
     case 3: span_x = 2; span_y = 2; break;
     case 4: span_x = cols; break;
+    case 5: span_x = cols; span_y = rows; break;
     default: break;
   }
   if (span_x > cols) span_x = cols;
@@ -439,6 +461,87 @@ inline void render_chart(int i) {
     lv_label_set_text(w.stats, ("мін " + format_number(lo) + "  макс " + format_number(hi)).c_str());
 }
 
+// ----------------------------------------------------------------- clock
+
+inline const char *const kWeekdays[] = {"неділя", "понеділок", "вівторок", "середа", "четвер", "п'ятниця", "субота"};
+inline const char *const kMonths[] = {"січня",  "лютого",  "березня",  "квітня",  "травня",    "червня",
+                                      "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"};
+
+// Local time from SNTP (the time component sets TZ); false until synced.
+inline bool local_now(struct tm *out) {
+  time_t t = ::time(nullptr);
+  localtime_r(&t, out);
+  return out->tm_year + 1900 >= 2024;
+}
+
+inline void ensure_clock(int i) {
+  Widgets &w = g_widgets[i];
+  if (w.clock_time != nullptr) return;
+  w.clock_time = lv_label_create(w.card);
+  w.clock_date = lv_label_create(w.card);
+  lv_obj_set_style_text_color(w.clock_time, lv_color_hex(0xFFFFFF), 0);
+  lv_obj_set_style_text_color(w.clock_date, lv_color_hex(0xAAAAAA), 0);
+}
+
+inline void hide_clock(int i) {
+  set_hidden(g_widgets[i].clock_time, true);
+  set_hidden(g_widgets[i].clock_date, true);
+}
+
+// Transparent, borderless and not pressable while the slot shows a clock.
+inline void set_card_transparent(lv_obj_t *card, bool on) {
+  const lv_style_selector_t sel = LV_PART_MAIN | LV_STATE_DEFAULT;
+  if (on) {
+    lv_obj_set_style_bg_opa(card, LV_OPA_TRANSP, sel);
+    lv_obj_set_style_border_opa(card, LV_OPA_TRANSP, sel);
+    lv_obj_set_style_shadow_opa(card, LV_OPA_TRANSP, sel);
+    lv_obj_remove_flag(card, LV_OBJ_FLAG_CLICKABLE);
+  } else {
+    lv_obj_remove_local_style_prop(card, LV_STYLE_BG_OPA, sel);
+    lv_obj_remove_local_style_prop(card, LV_STYLE_BORDER_OPA, sel);
+    lv_obj_remove_local_style_prop(card, LV_STYLE_SHADOW_OPA, sel);
+    lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
+  }
+}
+
+inline void render_clock(int i) {
+  Widgets &w = g_widgets[i];
+  ensure_clock(i);
+  set_hidden(w.clock_time, false);
+  set_hidden(w.clock_date, false);
+  lv_label_set_text(w.icon, "");
+  lv_label_set_text(w.label, "");
+  lv_label_set_text(w.value, "");
+
+  struct tm now;
+  bool synced = local_now(&now);
+  char time_buf[8];
+  if (synced) snprintf(time_buf, sizeof(time_buf), "%02d:%02d", now.tm_hour, now.tm_min);
+  else snprintf(time_buf, sizeof(time_buf), "--:--");
+  std::string date = synced ? std::string(kWeekdays[now.tm_wday]) + ", " + std::to_string(now.tm_mday) + " " +
+                                  kMonths[now.tm_mon]
+                            : std::string("");
+
+  lv_obj_update_layout(w.card);
+  lv_coord_t cw = lv_obj_get_content_width(w.card), ch = lv_obj_get_content_height(w.card);
+  // Large date font on big cards (whole page, 2x2).
+  const lv_font_t *date_font = ch >= 200 && g_clock_date_large != nullptr ? g_clock_date_large : g_clock_date_small;
+  if (date_font != nullptr) lv_obj_set_style_text_font(w.clock_date, date_font, 0);
+  lv_coord_t date_h = date.empty() || date_font == nullptr ? 0 : lv_font_get_line_height(date_font);
+  // Largest time font that fits next to the date ("00:00" is as wide as any time).
+  const lv_font_t *time_font = g_clock_fonts.empty() ? nullptr : g_clock_fonts.front();
+  for (const lv_font_t *f : g_clock_fonts) {
+    lv_point_t size;
+    lv_text_get_size(&size, "00:00", f, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    if (size.x <= cw && size.y + date_h <= ch) time_font = f;
+  }
+  if (time_font != nullptr) lv_obj_set_style_text_font(w.clock_time, time_font, 0);
+  lv_label_set_text(w.clock_time, time_buf);
+  lv_label_set_text(w.clock_date, date.c_str());
+  lv_obj_align(w.clock_time, LV_ALIGN_CENTER, 0, -date_h / 2);
+  lv_obj_align_to(w.clock_date, w.clock_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+}
+
 // ---------------------------------------------------------------- rendering
 
 inline void render_slot(int i) {
@@ -455,6 +558,14 @@ inline void render_slot(int i) {
   lv_label_set_text(w.label, c.label.empty() ? c.entity.c_str() : c.label.c_str());
 
   if (c.type != "chart") hide_chart(i);
+  set_card_transparent(w.card, c.type == "clock");
+  if (c.type == "clock") {
+    set_state(w.card, LV_STATE_CHECKED, false);
+    set_state(w.card, LV_STATE_DISABLED, false);
+    render_clock(i);
+    return;
+  }
+  hide_clock(i);
 
   if (c.type == "alarm") {
     // Big status text at the bottom, card title in the corner.
@@ -509,7 +620,12 @@ inline void render_nav() {
 
 inline void render_page() {
   if (g_page >= (int) g_pages.size()) g_page = 0;
-  if (g_title != nullptr) lv_label_set_text(g_title, g_pages[g_page].title.c_str());
+  if (g_title != nullptr) {
+    lv_label_set_text(g_title, g_pages[g_page].title.c_str());
+    // The bottom menu already names the page: the title row (with the back
+    // button) is only shown for pages outside the menu or after a jump.
+    set_hidden(lv_obj_get_parent(g_title), g_pages[g_page].nav && g_nav_stack.empty());
+  }
   set_hidden(g_back, g_nav_stack.empty());
   bool any = false;
   for (int i = 0; i < SLOTS; i++) any = any || (g_cards[i].valid() && g_cards[i].page == g_page);
@@ -697,9 +813,9 @@ inline void set_config(int slot, const std::string &raw) {
     if (parts.size() > 6) c.period = atoi(parts[6].c_str());
     if (c.period != 1 && c.period != 6 && c.period != 24) c.period = 24;
     if (c.page < 0 || c.page >= MAX_PAGES) c.page = 0;
-    if (c.size < 1 || c.size > 4) c.size = 1;
+    if (c.size < 1 || c.size > 5) c.size = 1;
     if (c.type != "toggle" && c.type != "sensor" && c.type != "action" && c.type != "subpage" && c.type != "alarm" &&
-        c.type != "chart")
+        c.type != "chart" && c.type != "clock")
       c = Card{};
   }
   g_cards[slot - 1] = c;
@@ -711,7 +827,7 @@ inline void set_config(int slot, const std::string &raw) {
     float v;
     if (parse_number(state_of(c.entity), &v)) h.add(v);
   }
-  if (c.valid() && c.type != "subpage" && c.type != "alarm")
+  if (c.valid() && c.type != "subpage" && c.type != "alarm" && c.type != "clock")
     subscribe_entity(c.entity, c.type == "sensor" || c.type == "chart");
   render_page();
 }
@@ -781,6 +897,15 @@ inline void set_alarm_entity(const std::string &raw) {
 
 // Call every second: closes chart buckets and redraws visible charts.
 inline void tick() {
+  // Clocks: redraw when the minute (or the sync state) changes.
+  static int last_minute = -2;
+  struct tm t;
+  int minute = local_now(&t) ? t.tm_hour * 60 + t.tm_min : -1;
+  if (minute != last_minute) {
+    last_minute = minute;
+    for (int i = 0; i < SLOTS; i++)
+      if (g_cards[i].type == "clock" && g_cards[i].page == g_page) render_slot(i);
+  }
   uint32_t now = esphome::millis();
   for (int i = 0; i < SLOTS; i++) {
     if (g_cards[i].type != "chart") continue;
@@ -789,6 +914,14 @@ inline void tick() {
 }
 
 inline void set_small_font(const lv_font_t *font) { g_small_font = font; }
+
+// Time fonts smallest first, then the date fonts for small and big cards.
+inline void set_clock_fonts(std::vector<const lv_font_t *> time_fonts, const lv_font_t *date_small,
+                            const lv_font_t *date_large) {
+  g_clock_fonts = std::move(time_fonts);
+  g_clock_date_small = date_small;
+  g_clock_date_large = date_large;
+}
 
 // ------------------------------------------------------- widget binding
 
@@ -830,7 +963,7 @@ inline void on_click(int slot) {
     set_page(atoi(c.entity.c_str()));
     return;
   }
-  if (c.type == "sensor" || c.type == "alarm") return;
+  if (c.type == "sensor" || c.type == "alarm" || c.type == "clock") return;
 
   std::string domain = domain_of(c.entity);
   std::string service;
